@@ -1,0 +1,6 @@
+local content = io.read("*a")
+local i = assert(content:match("UM program follows colon:()"))
+content = content:sub(i)
+local f = assert(io.open("umix.um", "wb"))
+f:write(content)
+f:close()
