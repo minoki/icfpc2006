@@ -71,12 +71,12 @@ int main(int argc, char *argv[])
                 uint32_t a = (op >> 6) & 7;
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
-                uint32_t arri = reg[b];
-                assert(arri < arraycount);
-                struct array *ar = arr[arri];
-                assert(ar != NULL);
-                assert(reg[c] < ar->length);
-                reg[a] = ar->data[reg[c]];
+                uint32_t i = reg[b];
+                assert(i < arraycount);
+                struct array *ai = arr[i];
+                assert(ai != NULL);
+                assert(reg[c] < ai->length);
+                reg[a] = ai->data[reg[c]];
                 break;
             }
         case 2: /* Array Amendment */
@@ -84,12 +84,12 @@ int main(int argc, char *argv[])
                 uint32_t a = (op >> 6) & 7;
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
-                uint32_t arri = reg[a];
-                assert(arri < arraycount);
-                struct array *ar = arr[arri];
-                assert(ar != NULL);
-                assert(reg[b] < ar->length);
-                ar->data[reg[b]] = reg[c];
+                uint32_t i = reg[a];
+                assert(i < arraycount);
+                struct array *ai = arr[i];
+                assert(ai != NULL);
+                assert(reg[b] < ai->length);
+                ai->data[reg[b]] = reg[c];
                 break;
             }
         case 3: /* Addition */
@@ -173,6 +173,7 @@ int main(int argc, char *argv[])
         case 11: /* Input */
             {
                 uint32_t c = op & 7;
+                fflush(stdout);
                 int ch = getchar();
                 if (ch == EOF) {
                     reg[c] = (uint32_t)(-1);
