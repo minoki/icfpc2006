@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <assert.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 struct array {
     uint32_t length;

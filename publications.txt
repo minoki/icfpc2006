@@ -1,0 +1,21 @@
+INTRO.LOG=200@999999|35e6f52e9bc951917c73af391e35e1d
+
+/bin/umodem
+INTRO.UMD=10@999999|7005f80d6cd9b7b837802f1e58b11b8
+
+/bin/qbasic
+INTRO.QBC=10@999999|e6ee9c98b80b4dd04814a29a37bcba8
+
+./a.out -> cat core
+INTRO.OUT=5@999999|69ca684f8c787cfe06694cb26f74a95
+
+telnet localhost 80
+GET / HTTP/1.1
+Host: localhost
+INTRO.WEB=15@999999|071345f65fa1a6a2410986c7bb0ac85
+
+mail "Yours loan is approved 7l0l"
+INTRO.MUA=5@999999|b9666432feff66e528a17fb69ae8e9a
+
+/home/ftd/ml19100.exe
+BASIC.MLC=100@999999|8f8f7b233a9deb154cbcd5314b8e930
