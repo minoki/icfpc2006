@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#if defined(__GNUC__)
+#define LIKELY(x) __builtin_expect(!!(x), 1)
+#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define LIKELY(x) (x)
+#define UNLIKELY(x) (x)
+#endif
 struct array {
     uint32_t length;
     uint32_t data[];
@@ -55,30 +62,32 @@ int main(int argc, char *argv[])
     arr[0] = arr0;
     size_t arraycount = 1;
 
+    static void * const operations[16] = {
+        &&OP_CondMove,
+        &&OP_ArrayIndex,
+        &&OP_ArrayAmendment,
+        &&OP_Add,
+        &&OP_Mul,
+        &&OP_Div,
+        &&OP_NotAnd,
+        &&OP_Halt,
+        &&OP_Alloc,
+        &&OP_Abandon,
+        &&OP_Output,
+        &&OP_Input,
+        &&OP_LoadProgram,
+        &&OP_Orthography,
+        &&OP_Invalid,
+        &&OP_Invalid,
+    };
     uint32_t op = 0;
     while (1) {
-#define NEXT()                                  \
+#define JUMP()                                  \
         do {                                    \
             op = arr0->data[pc];                \
-            switch (op >> 28) {                 \
-            case 0: goto OP_CondMove;           \
-            case 1: goto OP_ArrayIndex;         \
-            case 2: goto OP_ArrayAmendment;     \
-            case 3: goto OP_Add;                \
-            case 4: goto OP_Mul;                \
-            case 5: goto OP_Div;                \
-            case 6: goto OP_NotAnd;             \
-            case 7: goto OP_Halt;               \
-            case 8: goto OP_Alloc;              \
-            case 9: goto OP_Abandon;            \
-            case 10: goto OP_Output;            \
-            case 11: goto OP_Input;             \
-            case 12: goto OP_LoadProgram;       \
-            case 13: goto OP_Orthography;       \
-            default: __builtin_unreachable();   \
-            }                                   \
+            goto *operations[op >> 28];         \
         } while (0)
-        NEXT();
+        JUMP();
     OP_CondMove:
         {
             uint32_t a = (op >> 6) & 7;
@@ -88,7 +97,7 @@ int main(int argc, char *argv[])
                 reg[a] = reg[b];
             }
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_ArrayIndex:
         {
@@ -102,7 +111,7 @@ int main(int argc, char *argv[])
             assert(reg[c] < ai->length);
             reg[a] = ai->data[reg[c]];
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_ArrayAmendment:
         {
@@ -116,7 +125,7 @@ int main(int argc, char *argv[])
             assert(reg[b] < ai->length);
             ai->data[reg[b]] = reg[c];
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Add:
         {
@@ -125,7 +134,7 @@ int main(int argc, char *argv[])
             uint32_t c = op & 7;
             reg[a] = reg[b] + reg[c];
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Mul:
         {
@@ -134,7 +143,7 @@ int main(int argc, char *argv[])
             uint32_t c = op & 7;
             reg[a] = reg[b] * reg[c];
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Div:
         {
@@ -144,7 +153,7 @@ int main(int argc, char *argv[])
             assert(reg[c] != 0);
             reg[a] = reg[b] / reg[c];
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_NotAnd:
         {
@@ -153,7 +162,7 @@ int main(int argc, char *argv[])
             uint32_t c = op & 7;
             reg[a] = ~(reg[b] & reg[c]);
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Halt:
         fflush(stdout);
@@ -181,7 +190,7 @@ int main(int argc, char *argv[])
             arr[i] = newarr;
             reg[b] = i;
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Abandon:
         {
@@ -193,7 +202,7 @@ int main(int argc, char *argv[])
             free(arr[i]);
             arr[i] = NULL;
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Output:
         {
@@ -201,7 +210,7 @@ int main(int argc, char *argv[])
             assert(reg[c] <= 255);
             putchar(reg[c]);
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_Input:
         {
@@ -215,14 +224,14 @@ int main(int argc, char *argv[])
                 reg[c] = (uint32_t)ch;
             }
             ++pc;
-            NEXT();
+            JUMP();
         }
     OP_LoadProgram:
         {
             uint32_t b = (op >> 3) & 7;
             uint32_t c = op & 7;
             uint32_t i = reg[b];
-            if (i != 0) {
+            if (UNLIKELY(i != 0)) {
                 assert(i < arraycount);
                 assert(arr[i] != NULL);
                 uint32_t length = arr[i]->length;
@@ -235,7 +244,7 @@ int main(int argc, char *argv[])
             }
             pc = reg[c];
             assert(pc < arr0->length);
-            NEXT();
+            JUMP();
         }
     OP_Orthography:
         {
@@ -243,7 +252,12 @@ int main(int argc, char *argv[])
             uint32_t value = op & ((UINT32_C(1) << 25) - 1);
             reg[a] = value;
             ++pc;
-            NEXT();
+            JUMP();
+        }
+    OP_Invalid:
+        {
+            fprintf(stderr, "Invalid Instruction: %08X\n", op);
+            abort();
         }
     }
 }

@@ -19,5 +19,17 @@ um.um:
 run: run.c
 	$(CC) -o $@ -Wall -O2 $<
 
+run_threaded: run_threaded.c
+	$(CC) -o $@ -Wall -O2 $<
+
+run_threaded_switch: run_threaded_switch.c
+	$(CC) -o $@ -Wall -O2 $<
+
+run_directthreaded: run_directthreaded.c
+	$(CC) -o $@ -Wall -O2 $<
+
+run_directthreaded_tailcall: run_directthreaded_tailcall.c
+	$(CC) -o $@ -Wall -O2 $<
+
 umix.um: run codex.umz extract.lua
 	lua -e 'io.write("(\\b.bb)(\\v.vv)06FHPVboundvarHRAk\np\n")' | ./run codex.umz | lua extract.lua

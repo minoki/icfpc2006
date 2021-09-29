@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__GNUC__)
+#define LIKELY(x) __builtin_expect(!!(x), 1)
+#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define LIKELY(x) (x)
+#define UNLIKELY(x) (x)
+#endif
 struct array {
     uint32_t length;
     uint32_t data[];
@@ -104,6 +111,8 @@ void OP_NotAnd(PARAMS)
 }
 void OP_Halt(PARAMS)
 {
+    (void)pc;
+    (void)arr0;
     fflush(stdout);
     fprintf(stderr, "HALT\n");
     exit(0);
@@ -176,7 +185,7 @@ void OP_LoadProgram(PARAMS)
     uint32_t b = (op >> 3) & 7;
     uint32_t c = op & 7;
     uint32_t i = reg[b];
-    if (i != 0) {
+    if (UNLIKELY(i != 0)) {
         assert(i < arrsize);
         assert(arr[i] != NULL);
         uint32_t length = arr[i]->length;
