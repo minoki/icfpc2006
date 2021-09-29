@@ -20,3 +20,8 @@
 * [YARV Maniacs 【第 3 回】 命令ディスパッチの高速化](https://magazine.rubyist.net/articles/0008/0008-YarvManiacs.html)
 * [JITあれこれ | κeenのHappy Hacκing Blog](https://keens.github.io/blog/2018/12/01/jitarekore/)
 * [WASM3の末尾呼び出しVMがかしこい - Qiita](https://qiita.com/okuoku/items/ed52f48ce871f429759e)
+
+## QVICKBASIC
+
+* [hack3.bas](hack3.bas)
+    * A program to obtain passwords for `ftd`, `ohmega`, and `howie`.
