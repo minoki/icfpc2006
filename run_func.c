@@ -14,7 +14,7 @@ size_t arrsize = 1;
 #define ARGS pc, arr0
 typedef void (*OP)(PARAMS);
 OP *program;
-
+const OP operations[16];
 void recalc(void);
 void OP_CondMove(PARAMS)
 {
@@ -56,7 +56,7 @@ void OP_ArrayAmendment(PARAMS)
     assert(reg[b] < ai->length);
     ai->data[reg[b]] = reg[c];
     if (i == 0) {
-        recalc();
+        program[reg[b]] = operations[reg[c] >> 28];
     }
     ++pc;
     return program[pc](ARGS);
