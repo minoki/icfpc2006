@@ -1,0 +1,13 @@
+*~
+um-spec.txt
+codex.umz
+sandmark.umz
+um.um
+umix.um
+run
+run_threaded
+run_threaded_switch
+run_directthreaded
+run_directthreaded_tailcall
+run_verbose
+
