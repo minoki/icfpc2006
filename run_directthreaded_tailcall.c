@@ -14,9 +14,14 @@ struct array {
     uint32_t length;
     uint32_t data[];
 };
+struct freelist {
+    uint32_t location;
+    struct freelist *next;
+};
 uint32_t reg[8] = {0};
 struct array **arr;
 size_t arrsize = 1;
+struct freelist *freelist = NULL;
 #define PARAMS size_t pc, struct array *arr0
 #define ARGS pc, arr0
 typedef void (*OP)(PARAMS);
@@ -123,16 +128,17 @@ void OP_Alloc(PARAMS)
     uint32_t b = (op >> 3) & 7;
     uint32_t c = op & 7;
     uint32_t capacity = reg[c];
-    size_t i = 0;
-    for (; i < arrsize; ++i) {
-        if (arr[i] == NULL) {
-            break;
-        }
-    }
-    if (i == arrsize) {
+    uint32_t i = 0;
+    if (freelist == NULL) {
+        i = arrsize;
         ++arrsize;
         arr = realloc(arr, sizeof(struct array *) * arrsize);
         assert(arr != NULL);
+    } else {
+        i = freelist->location;
+        struct freelist *next = freelist->next;
+        free(freelist);
+        freelist = next;
     }
     struct array *newarr = calloc(1 + capacity, sizeof(uint32_t));
     assert(newarr != NULL);
@@ -152,6 +158,13 @@ void OP_Abandon(PARAMS)
     assert(arr[i] != NULL);
     free(arr[i]);
     arr[i] = NULL;
+    {
+        struct freelist *f = malloc(sizeof(struct freelist));
+        assert(f != NULL);
+        f->location = i;
+        f->next = freelist;
+        freelist = f;
+    }
     ++pc;
     return program[pc](ARGS);
 }

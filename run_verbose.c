@@ -8,6 +8,10 @@ struct array {
     uint32_t length;
     uint32_t data[];
 };
+struct freelist {
+    uint32_t location;
+    struct freelist *next;
+};
 int main(int argc, char *argv[])
 {
     if (argc <= 1) {
@@ -53,6 +57,7 @@ int main(int argc, char *argv[])
     struct array **arr = calloc(1, sizeof(struct array *));
     arr[0] = program;
     size_t arraycount = 1;
+    struct freelist *freelist = NULL;
     int arrayamend0 = 0;
     while (1) {
         uint32_t op = program->data[pc];
@@ -139,16 +144,17 @@ int main(int argc, char *argv[])
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
                 uint32_t capacity = reg[c];
-                size_t i = 0;
-                for (; i < arraycount; ++i) {
-                    if (arr[i] == NULL) {
-                        break;
-                    }
-                }
-                if (i == arraycount) {
+                uint32_t i = 0;
+                if (freelist == NULL) {
+                    i = arraycount;
                     ++arraycount;
                     arr = realloc(arr, sizeof(struct array *) * arraycount);
                     assert(arr != NULL);
+                } else {
+                    i = freelist->location;
+                    struct freelist *next = freelist->next;
+                    free(freelist);
+                    freelist = next;
                 }
                 struct array *newarr = calloc(1 + capacity, sizeof(uint32_t));
                 assert(newarr != NULL);
@@ -166,6 +172,13 @@ int main(int argc, char *argv[])
                 assert(arr[i] != NULL);
                 free(arr[i]);
                 arr[i] = NULL;
+                {
+                    struct freelist *f = malloc(sizeof(struct freelist));
+                    assert(f != NULL);
+                    f->location = i;
+                    f->next = freelist;
+                    freelist = f;
+                }
                 break;
             }
         case 10: /* Output */
