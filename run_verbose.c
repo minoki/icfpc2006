@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     size_t arraycount = 1;
     struct freelist *freelist = NULL;
     int arrayamend0 = 0;
+    bool modified[8] = {0};
     while (1) {
         uint32_t op = program->data[pc];
         ++pc;
@@ -70,6 +71,11 @@ int main(int argc, char *argv[])
                 uint32_t c = op & 7;
                 if (reg[c] != 0) {
                     reg[a] = reg[b];
+                    if (!modified[a] && reg[a] != 0) {
+                        fflush(stdout);
+                        fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                        modified[a] = true;
+                    }
                 }
                 break;
             }
@@ -84,6 +90,11 @@ int main(int argc, char *argv[])
                 assert(ai != NULL);
                 assert(reg[c] < ai->length);
                 reg[a] = ai->data[reg[c]];
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         case 2: /* Array Amendment */
@@ -108,6 +119,11 @@ int main(int argc, char *argv[])
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
                 reg[a] = reg[b] + reg[c];
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         case 4: /* Multiplication */
@@ -116,6 +132,11 @@ int main(int argc, char *argv[])
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
                 reg[a] = reg[b] * reg[c];
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         case 5: /* Division */
@@ -125,6 +146,11 @@ int main(int argc, char *argv[])
                 uint32_t c = op & 7;
                 assert(reg[c] != 0);
                 reg[a] = reg[b] / reg[c];
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         case 6: /* Not-And */
@@ -133,6 +159,11 @@ int main(int argc, char *argv[])
                 uint32_t b = (op >> 3) & 7;
                 uint32_t c = op & 7;
                 reg[a] = ~(reg[b] & reg[c]);
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         case 7: /* Halt */
@@ -161,6 +192,11 @@ int main(int argc, char *argv[])
                 newarr->length = capacity;
                 arr[i] = newarr;
                 reg[b] = i;
+                if (!modified[b] && reg[b] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)b);
+                    modified[b] = true;
+                }
                 break;
             }
         case 9: /* Abandonment */
@@ -204,6 +240,11 @@ int main(int argc, char *argv[])
                     assert(0 <= ch && ch <= 255);
                     reg[c] = (uint32_t)ch;
                 }
+                if (!modified[c]) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)c);
+                    modified[c] = true;
+                }
                 break;
             }
         case 12: /* Load Program */
@@ -232,6 +273,11 @@ int main(int argc, char *argv[])
                 uint32_t a = (op >> 25) & 7;
                 uint32_t value = op & ((UINT32_C(1) << 25) - 1);
                 reg[a] = value;
+                if (!modified[a] && reg[a] != 0) {
+                    fflush(stdout);
+                    fprintf(stderr, "<<<REG[%u] modified>>>", (unsigned int)a);
+                    modified[a] = true;
+                }
                 break;
             }
         default:
