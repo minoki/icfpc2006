@@ -38,6 +38,7 @@ static void *program; // uint32_t (*)(struct array **arrays, void **jumptable, u
 static void *program_end;
 static size_t program_mem_capacity;
 static uint32_t *L_epilogue;
+static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
 
 static clock_t time_modify;
 static clock_t time_alloc;
@@ -194,12 +195,6 @@ static uint32_t um_getchar(void)
         return (uint32_t)ch;
     }
 }
-static void um_invalid(uint32_t op)
-{
-    fflush(stdout);
-    fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", op);
-    abort();
-}
 static const uint32_t Xarrays = 19;
 static const uint32_t Xjumptable = 20;
 static const uint32_t REG[8] = {21, 22, 23, 24, 25, 26, 27, 28};
@@ -354,7 +349,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             }
             {
                 /* BL um_modify_0 */
-                uint32_t *dest = (uint32_t *)(void *)&um_modify_0;
+                uint32_t *dest = (uint32_t *)L_jump_to_fn[0];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
@@ -495,7 +490,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             }
             {
                 /* BL um_alloc */
-                uint32_t *dest = (uint32_t *)(void *)&um_alloc;
+                uint32_t *dest = (uint32_t *)L_jump_to_fn[1];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
@@ -523,7 +518,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             }
             {
                 /* BL um_free */
-                uint32_t *dest = (uint32_t *)(void *)&um_free;
+                uint32_t *dest = (uint32_t *)L_jump_to_fn[2];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
@@ -541,7 +536,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             }
             {
                 /* BL um_putchar */
-                uint32_t *dest = (uint32_t *)(void *)&um_putchar;
+                uint32_t *dest = (uint32_t *)L_jump_to_fn[3];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
@@ -554,7 +549,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             uint32_t Wc = REG[op & 7];
             {
                 /* BL um_getchar */
-                uint32_t *dest = (uint32_t *)(void *)&um_getchar;
+                uint32_t *dest = (uint32_t *)L_jump_to_fn[4];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
@@ -668,12 +663,11 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
             }
             {
-                /* BL um_invalid */
-                uint32_t *dest = (uint32_t *)(void *)&um_invalid;
-                ptrdiff_t diff = dest - instr;
-                assert(-0x2000000 <= diff && diff < 0x2000000);
-                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                *instr++ = 0x94000000 | imm26;
+                /* B L_epilogue */
+                ptrdiff_t offset = L_epilogue - instr;
+                assert(-0x2000000 <= offset && offset < 0x2000000);
+                uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+                *instr++ = 0x14000000 | imm26;
             }
             for (uint32_t i = 0; i < 5; ++i) {
                 /* NOP (allow patching) */
@@ -830,6 +824,48 @@ static void compile(struct array *arr0)
         *instr++ = 0xD65F0000 | (30 << 5); /* RET x30 */
     }
 
+    /* Jumps */
+    {
+        uintptr_t addrs[5] = {(uintptr_t)um_modify_0, (uintptr_t)um_alloc, (uintptr_t)um_free, (uintptr_t)um_putchar, (uintptr_t)um_getchar};
+        for (int i = 0; i < 5; ++i) {
+            L_jump_to_fn[i] = instr;
+            uintptr_t addr = addrs[i];
+            uint32_t Xtmp = 9;
+            {
+                /* MOVZ Xtmp, #addr0 */
+                uint32_t sf = 1;
+                uint32_t hw = 0;
+                uint32_t imm16 = addr & 0xffff;
+                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (imm16 << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* MOVK Xtmp, #addr16, LSL #16 */
+                uint32_t sf = 1;
+                uint32_t hw = 1;
+                uint32_t imm16 = (addr >> 16) & 0xffff;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (imm16 << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* MOVK Xtmp, #addr32, LSL #16 */
+                uint32_t sf = 1;
+                uint32_t hw = 2;
+                uint32_t imm16 = (addr >> 32) & 0xffff;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (imm16 << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* MOVK Xtmp, #addr48, LSL #16 */
+                uint32_t sf = 1;
+                uint32_t hw = 3;
+                uint32_t imm16 = (addr >> 48) & 0xffff;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (imm16 << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* BR Xtmp */
+                *instr++ = 0xD61F0000  | (/* Rn */ Xtmp << 5);
+            }
+        }
+    }
+
     for (uint32_t i = 0; i < arr0->length; ++i) {
         jumptable[i] = instr;
         uint32_t op = arr0->data[i];
@@ -958,6 +994,7 @@ int main(int argc, char *argv[])
                 break;
             }
         default:
+            fflush(stdout);
             fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", last_op);
             abort();
         }
