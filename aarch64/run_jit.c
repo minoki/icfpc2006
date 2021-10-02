@@ -33,14 +33,14 @@ void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t
 void *program_end;
 size_t program_mem_capacity;
 
-void um_modify_0(uint32_t pc, uint32_t newval)
+static void um_modify_0(uint32_t pc, uint32_t newval)
 {
     if (arrays[0]->data[pc] != newval) {
         arrays[0]->data[pc] = newval;
         fprintf(stderr, "<<<self modification: not implemented yet>>>");
     }
 }
-void um_modify(uint32_t a, uint32_t b, uint32_t c)
+static void um_modify(uint32_t a, uint32_t b, uint32_t c)
 {
     if (a == 0) {
         um_modify_0(b, c);
@@ -52,7 +52,7 @@ struct alloc_result {
     uint32_t identifier;
     struct array **arrays;
 };
-struct alloc_result um_alloc(uint32_t capacity)
+static struct alloc_result um_alloc(uint32_t capacity)
 {
     uint32_t i = 0;
     if (freelist == NULL) {
@@ -72,7 +72,7 @@ struct alloc_result um_alloc(uint32_t capacity)
     arrays[i] = newarr;
     return (struct alloc_result){/* w0 */ i, /* x1 */ arrays};
 }
-void um_free(uint32_t id)
+static void um_free(uint32_t id)
 {
     assert(id < arraysize);
     assert(id != 0);
@@ -87,12 +87,12 @@ void um_free(uint32_t id)
         freelist = f;
     }
 }
-void um_putchar(uint32_t x)
+static void um_putchar(uint32_t x)
 {
     assert(x <= 255);
     putchar(x);
 }
-uint32_t um_getchar(void)
+static uint32_t um_getchar(void)
 {
     fflush(stdout);
     int ch = getchar();
@@ -103,13 +103,13 @@ uint32_t um_getchar(void)
         return (uint32_t)ch;
     }
 }
-void um_invalid(uint32_t op)
+static void um_invalid(uint32_t op)
 {
     fflush(stdout);
     fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", op);
     abort();
 }
-void compile(struct array *arr0)
+static void compile(struct array *arr0)
 {
     if (program != NULL) {
         munmap(program, program_mem_capacity);
@@ -169,9 +169,18 @@ void compile(struct array *arr0)
     {
         /* STR x2, [SP, #-16]! */
         uint32_t size = 3; // 64-bit variant
-        uint32_t imm9 = 0x1fe; /* -16, encoded as -16/8=-2 */
+        uint32_t imm9 = 0x1ff - 15; /* -16 */
         uint32_t SP = 31;
         *instr++ = 0x38000C00 | (size << 30) | (imm9 << 12) | (/* Rn */ SP << 5) | /* Rt */ 2;
+    }
+    /* Set Frame Pointer */
+    {
+        /* ADD X29, SP, #(16 * 6) */
+        uint32_t sf = 1; // 64-bit variant
+        uint32_t sh = 0;
+        uint32_t imm12 = 16 * 6;
+        uint32_t SP = 31;
+        *instr++ = 0x11000000 | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ SP << 5) | /* Rd */ 29;
     }
     /* Load Xarrays and Xjumptable */
     {
@@ -212,7 +221,7 @@ void compile(struct array *arr0)
     {
         /* LDR X2, [SP], #16 */
         uint32_t size = 3; // 64-bit variant
-        uint32_t imm9 = 2;
+        uint32_t imm9 = 16;
         uint32_t SP = 31;
         *instr++ = 0x38400400 | (size << 30) | (imm9 << 12) | (/* Rn */ SP << 5) | /* Rt */ 2;
     }
@@ -225,7 +234,7 @@ void compile(struct array *arr0)
         *instr++ = 0x29000000 | (opc << 30) | (imm7 << 15) | (/* Rt2 */ REG[2 * i + 1] << 10) | (/* Rn */ Xn << 5) | /* Rt */ REG[2 * i];
     }
     /* Restore callee-save registers */
-    for (uint32_t i = 0; i < 5; ++i) {
+    for (int32_t i = 4; i >= 0; --i) {
         uint32_t Xa = 19 + 2 * i;
         uint32_t Xb = 20 + 2 * i;
         /* LDP Xa, Xb, [SP], #16 */
@@ -285,7 +294,7 @@ void compile(struct array *arr0)
                     *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wb << 16) | (option << 13) | (S << 12) | (/* Rn */ Xarrays << 5) | /* Rt */ Xtmp;
                 }
                 {
-                    /* ADD Xtmp, Xtmp, Wc, uxtw #2 */
+                    /* ADD Xtmp, Xtmp, Wc, UXTW #2 */
                     uint32_t sf = 1; // 0: 32bit, 1: 64bit
                     uint32_t option = 2; // Rm's width=W, UXTW
                     uint32_t imm3 = 2;
@@ -294,8 +303,8 @@ void compile(struct array *arr0)
                 {
                     /* LDR Wa, [Xtmp, #4] */
                     uint32_t size = 2; // 32-bit variant
-                    uint32_t imm9 = 4;
-                    *instr++ = 0x38400400 | (size << 30) | (imm9 << 12) | (/* Rn */ Xtmp << 5) | /* Rt */ Wa;
+                    uint32_t imm12 = 1;
+                    *instr++ = 0x39400000 | (size << 30) | (imm12 << 10) | (/* Rn */ Xtmp << 5) | /* Rt */ Wa;
                 }
                 break;
             }
@@ -494,8 +503,8 @@ void compile(struct array *arr0)
             {
                 uint32_t Wc = REG[op & 7];
                 {
-                    /* BL um_putchar */
-                    uint32_t *dest = (uint32_t *)(void *)&um_putchar;
+                    /* BL um_getchar */
+                    uint32_t *dest = (uint32_t *)(void *)&um_getchar;
                     ptrdiff_t diff = dest - instr;
                     assert(-0x2000000 <= diff && diff < 0x2000000);
                     uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
