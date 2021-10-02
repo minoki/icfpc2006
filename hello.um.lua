@@ -1,0 +1,38 @@
+local f = io.open("hello.um", "wb")
+local function HALT()
+  local op = 7 << 28
+  f:write(string.pack(">I4", op))
+end
+local function OUTPUT(c)
+  local op = (10 << 28) | c
+  f:write(string.pack(">I4", op))
+end
+local function ORTHO(a, value)
+  local op = (13 << 28) | (a << 25) | value
+  f:write(string.pack(">I4", op))
+end
+ORTHO(0, ("H"):byte())
+OUTPUT(0)
+ORTHO(0, ("e"):byte())
+OUTPUT(0)
+ORTHO(0, ("l"):byte())
+OUTPUT(0)
+OUTPUT(0)
+ORTHO(1, ("o"):byte())
+OUTPUT(1)
+ORTHO(2, (" "):byte())
+OUTPUT(2)
+ORTHO(2, ("w"):byte())
+OUTPUT(2)
+OUTPUT(1)
+ORTHO(2, ("r"):byte())
+OUTPUT(2)
+OUTPUT(0)
+ORTHO(0, ("d"):byte())
+OUTPUT(0)
+ORTHO(0, ("!"):byte())
+OUTPUT(0)
+ORTHO(0, ("\n"):byte())
+OUTPUT(0)
+HALT()
+f:close()

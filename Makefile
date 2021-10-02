@@ -16,6 +16,9 @@ sandmark.umz:
 um.um:
 	curl -O http://boundvariable.org/um.um
 
+hello.um: hello.um.lua
+	lua $<
+
 run: run.c
 	$(CC) -o $@ -Wall -O2 $<
 
