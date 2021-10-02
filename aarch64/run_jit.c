@@ -36,20 +36,77 @@ void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t
 void *program_end;
 size_t program_mem_capacity;
 
-static void um_modify_0(uint32_t pc, uint32_t newval)
+static uint32_t instr_size(uint32_t op);
+static uint32_t *write_instr(uint32_t *instr, uint32_t op);
+
+static void um_modify_0(uint32_t b, uint32_t c)
 {
-    if (arrays[0]->data[pc] != newval) {
-        arrays[0]->data[pc] = newval;
-        fprintf(stderr, "<<<self modification: not implemented yet>>>");
+    /*
+    if (arrays[0]->data[b] != c) {
+        arrays[0]->data[b] = c;
     }
-}
-static void um_modify(uint32_t a, uint32_t b, uint32_t c)
-{
-    if (a == 0) {
-        um_modify_0(b, c);
+    */
+    // fprintf(stderr, "<<<self modification>>>");
+    int ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_WRITE);
+    if (ret != 0) {
+        int e = errno;
+        fflush(stdout);
+        fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
+        abort();
+    }
+    uint32_t *pstart = (uint32_t *)jumptable[b];
+    uint32_t *pend = (uint32_t *)jumptable[b + 1];
+    ptrdiff_t inplace_len = pend - pstart;
+    {
+        uint32_t *instr = pstart;
+        while (instr != pend) {
+            /* NOP */
+            *instr++ = 0xD503201F;
+        }
+    }
+    uint32_t needed = instr_size(c);
+    if (needed <= inplace_len) {
+        write_instr(pstart, c);
     } else {
-        arrays[a]->data[b] = c;
+        assert(program_mem_capacity >= (size_t)((char *)program_end - (char *)program) + needed);
+        uint32_t *instr = program_end;
+        uint32_t *start = instr;
+        {
+            /* B */
+            ptrdiff_t offset = instr - pstart;
+            assert(-0x2000000 <= offset && offset < 0x2000000);
+            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+            *pstart = 0x14000000 | imm26;
+        }
+        /* L: */
+        instr = write_instr(instr, c);
+        {
+            /* B */
+            ptrdiff_t offset = pend - instr;
+            assert(-0x2000000 <= offset && offset < 0x2000000);
+            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+            *instr++ = 0x14000000 | imm26;
+        }
+        program_end = instr;
+#if defined(__APPLE__)
+        sys_icache_invalidate(start, (char *)instr - (char *)start);
+#else
+        __builtin___clear_cache((void *)start, (void *)instr);
+#endif
     }
+#if defined(__APPLE__)
+    sys_icache_invalidate(pstart, (char *)pend - (char *)pstart);
+#else
+    __builtin___clear_cache((void *)pstart, (void *)pend);
+#endif
+    ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_EXEC);
+    if (ret != 0) {
+        int e = errno;
+        fflush(stdout);
+        fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
+        abort();
+    }
+    // fprintf(stderr, "<<<self modification done>>>");
 }
 struct alloc_result {
     uint32_t identifier;
@@ -112,6 +169,485 @@ static void um_invalid(uint32_t op)
     fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", op);
     abort();
 }
+static const uint32_t Xarrays = 19;
+static const uint32_t Xjumptable = 20;
+static const uint32_t REG[8] = {21, 22, 23, 24, 25, 26, 27, 28};
+uint32_t *L_epilogue;
+uint32_t instr_size(uint32_t op)
+{
+    switch (op >> 28) {
+    case 0: /* Conditional Move */
+        return 2;
+    case 1: /* Array Index */
+        return 3;
+    case 2: /* Array Amendment */
+        return 7;
+    case 3: /* Addition */
+        return 1;
+    case 4: /* Multiplication */
+        return 1;
+    case 5: /* Division */
+        return 1;
+    case 6: /* Not-And */
+        {
+            uint32_t b = (op >> 3) & 7;
+            uint32_t c = op & 7;
+            if (b == c) {
+                return 1;
+            } else {
+                return 2;
+            }
+        }
+    case 7: /* Halt */
+        return 3;
+    case 8: /* Allocation */
+        return 4;
+    case 9: /* Abandonment */
+        return 2;
+    case 10: /* Output */
+        return 2;
+    case 11: /* Input */
+        return 2;
+    case 12: /* Load Program */
+        return 6;
+    case 13: /* Orthography */
+        {
+            uint32_t value = op & ((UINT32_C(1) << 25) - 1);
+            if (value <= 0xffff) {
+                return 1;
+            } else {
+                return 2;
+            }
+        }
+    default:
+        return 7;
+    }
+}
+uint32_t *write_instr(uint32_t *instr, uint32_t op)
+{
+    switch (op >> 28) {
+    case 0: /* Conditional Move */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            {
+                /* CMP Wc, #0 */
+                uint32_t sf = 0; // 0: 32bit, 1: 64bit
+                uint32_t sh = 0; // 0: LSL #0, 1: LSL #12
+                uint32_t imm12 = 0;
+                *instr++ = 0x7100001F | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ Wc << 5);
+            }
+            {
+                /* CSEL Wa, Wa, Wb, eq; Wa = eq ? Wa : Wb */
+                uint32_t sf = 0; // 0: 32bit, 1: 64bit
+                uint32_t cond = 0; // 0: EQ
+                *instr++ = 0x1A800000 | (sf << 31) | (/* Rm */ Wb << 16) | (cond << 12) | (/* Rn */ Wa << 5) | /* Rd */ Wa;
+            }
+            break;
+        }
+    case 1: /* Array Index */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            uint32_t Xtmp = 0; // 64-bit, temporary
+            {
+                /* LDR Xtmp, [Xarrays, Wb, UXTW #3] */
+                uint32_t size = 3; // 64-bit variant
+                uint32_t option = 2; // UXTW
+                uint32_t S = 1; // amount = 3
+                *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wb << 16) | (option << 13) | (S << 12) | (/* Rn */ Xarrays << 5) | /* Rt */ Xtmp;
+            }
+            {
+                /* ADD Xtmp, Xtmp, Wc, UXTW #2 */
+                uint32_t sf = 1; // 0: 32bit, 1: 64bit
+                uint32_t option = 2; // Rm's width=W, UXTW
+                uint32_t imm3 = 2;
+                *instr++ = 0x0B200000 | (sf << 31) | (/* Rm */ Wc << 16) | (option << 13) | (imm3 << 10) | (/* Rn */ Xtmp << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* LDR Wa, [Xtmp, #4] */
+                uint32_t size = 2; // 32-bit variant
+                uint32_t imm12 = 1;
+                *instr++ = 0x39400000 | (size << 30) | (imm12 << 10) | (/* Rn */ Xtmp << 5) | /* Rt */ Wa;
+            }
+            break;
+        }
+    case 2: /* Array Amendment */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            uint32_t Xtmp = 0; // 64-bit, temporary
+            {
+                /* LDR Xtmp, [Xarrays, Wa, UXTW #3] */
+                uint32_t size = 3; // 64-bit variant
+                uint32_t option = 2; // UXTW
+                uint32_t S = 1; // amount = 3
+                *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wa << 16) | (option << 13) | (S << 12) | (/* Rn */ Xarrays << 5) | /* Rt */ Xtmp;
+            }
+            {
+                /* ADD Xtmp, Xtmp, Wb, UXTW #2 */
+                uint32_t sf = 1; // 0: 32bit, 1: 64bit
+                uint32_t option = 2; // Rm's width=W, UXTW
+                uint32_t imm3 = 2;
+                *instr++ = 0x0B200000 | (sf << 31) | (/* Rm */ Wb << 16) | (option << 13) | (imm3 << 10) | (/* Rn */ Xtmp << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* STR Wc, [Xtmp, #4]! */
+                uint32_t size = 2; // 32-bit variant
+                uint32_t imm9 = 4;
+                *instr++ = 0x38000C00 | (size << 30) | (imm9 << 12) | (/* Rn */ Xtmp << 5) | /* Rt */ Wc;
+            }
+            {
+                /* CBNZ Wa, L_next */
+                uint32_t sf = 0; // 32-bit variant
+                uint32_t imm19 = 4;
+                *instr++ = 0x35000000 | (sf << 31) | (imm19 << 5) | /* Rt */ Wa;
+            }
+            {
+                /* MOV W0, Wb */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wb << 16) | /* Rd */ 0;
+            }
+            {
+                /* MOV W1, Wc */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 1;
+            }
+            {
+                /* BL um_modify_0 */
+                uint32_t *dest = (uint32_t *)(void *)&um_modify_0;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            /* L_next: */
+#if 0
+            {
+                /* MOV W0, Wa */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wa << 16) | /* Rd */ 0;
+            }
+            {
+                /* MOV W1, Wb */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wb << 16) | /* Rd */ 1;
+            }
+            {
+                /* MOV W2, Wc */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 2;
+            }
+            {
+                /* BL um_modify */
+                uint32_t *dest = (uint32_t *)(void *)&um_modify;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+#endif
+            break;
+        }
+    case 3: /* Addition */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            {
+                /* ADD Wa, Wb, Wc; Wa = Wb + Wc */
+                uint32_t sf = 0; // 0: 32bit, 1: 64bit
+                uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: reserved
+                uint32_t imm6 = 0;
+                *instr++ = 0x0B000000 | (sf << 31) | (shift << 22) | (/* Rm */ Wc << 16) | (imm6 << 10) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
+            }
+            break;
+        }
+    case 4: /* Multiplication */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            {
+                /* MUL Wa, Wb, Wc; Wa = Wb * Wc */
+                uint32_t sf = 0;
+                *instr++ = 0x1B007C00 | (sf << 31) | (/* Rm */ Wc << 16) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
+            }
+            break;
+        }
+    case 5: /* Division */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            // assert(value of Wc != 0);
+            {
+                /* UDIV Wa, Wb, Wc; Wa = Wb / Wc */
+                uint32_t sf = 0;
+                *instr++ = 0x1AC00800 | (sf << 31) | (/* Rm */ Wc << 16) | (/* Rn */ Wb << 5) | Wa;
+            }
+            break;
+        }
+    case 6: /* Not-And */
+        {
+            uint32_t Wa = REG[(op >> 6) & 7];
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            if (Wb == Wc) {
+                // Bitwise Negation
+                /* MVN Wa, Wb, Wa = ~Wb */
+                uint32_t sf = 0;
+                uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
+                uint32_t imm6 = 0;
+                *instr++ = 0x2A2003E0 | (sf << 31) | (shift << 22) | (/* Rm */ Wb << 16) | (imm6 << 10) | /* Rd */ Wa;
+            } else {
+                // Not-And
+                {
+                    /* AND Wa, Wb, Wc; Wa = Wb & Wc */
+                    uint32_t sf = 0;
+                    uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
+                    uint32_t imm6 = 0;
+                    *instr++ = 0x0A000000 | (sf << 31) | (shift << 22) | (/* Rm */ Wc << 16) | (imm6 << 10) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
+                }
+                {
+                    /* MVN Wa, Wb; Wa = ~Wb */
+                    uint32_t sf = 0;
+                    uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
+                    uint32_t imm6 = 0;
+                    *instr++ = 0x2A2003E0 | (sf << 31) | (shift << 22) | (/* Rm */ Wa << 16) | (imm6 << 10) | /* Rd */ Wa;
+                }
+            }
+            break;
+        }
+    case 7: /* Halt */
+        {
+            /* MOV W0, #(op) */
+            uint32_t value_lo = op & 0xffff;
+            uint32_t value_hi = op >> 16;
+            {
+                /* MOVZ W0, #value_lo */
+                uint32_t sf = 0;
+                uint32_t hw = 0;
+                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
+            }
+            {
+                /* MOVK W0, #value_hi, LSL #16 */
+                uint32_t sf = 0;
+                uint32_t hw = 1;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
+            }
+            {
+                /* B L_epilogue */
+                ptrdiff_t offset = L_epilogue - instr;
+                assert(-0x2000000 <= offset && offset < 0x2000000);
+                uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+                *instr++ = 0x14000000 | imm26;
+            }
+            break;
+        }
+    case 8: /* Allocation */
+        {
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            {
+                /* MOV W0, Wc */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
+            }
+            {
+                /* BL um_alloc */
+                uint32_t *dest = (uint32_t *)(void *)&um_alloc;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            {
+                /* MOV Wb, W0 */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 0 << 16) | /* Rd */ Wb;
+            }
+            {
+                /* MOV Xarrays, X1 */
+                uint32_t sf = 1; // 64-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 1 << 16) | /* Rd */ Xarrays;
+            }
+            break;
+        }
+    case 9: /* Abandonment */
+        {
+            uint32_t Wc = REG[op & 7];
+            {
+                /* MOV W0, Wc */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
+            }
+            {
+                /* BL um_free */
+                uint32_t *dest = (uint32_t *)(void *)&um_free;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            break;
+        }
+    case 10: /* Output */
+        {
+            uint32_t Wc = REG[op & 7];
+            {
+                /* MOV W0, Wc */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
+            }
+            {
+                /* BL um_putchar */
+                uint32_t *dest = (uint32_t *)(void *)&um_putchar;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            break;
+        }
+    case 11: /* Input */
+        {
+            uint32_t Wc = REG[op & 7];
+            {
+                /* BL um_getchar */
+                uint32_t *dest = (uint32_t *)(void *)&um_getchar;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            {
+                /* MOV Wc, W0 */
+                uint32_t sf = 0; // 32-bit variant
+                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 0 << 16) | /* Rd */ Wc;
+            }
+            break;
+        }
+    case 12: /* Load Program */
+        {
+            uint32_t Wb = REG[(op >> 3) & 7];
+            uint32_t Wc = REG[op & 7];
+            uint32_t *cbnz = instr;
+            {
+                /* HLT #0 (-> CBNZ Wb, L_reload) */
+                uint32_t imm16 = 0;
+                *instr++ = 0xD4400000 | (imm16 << 5); /* HLT #0 */
+            }
+            {
+                /* LDR X0, [Xjumptable, Wc, UXTW #3] */
+                uint32_t size = 3; // 64-bit variant
+                uint32_t option = 2; // UXTW
+                uint32_t S = 1; // #3
+                *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wc << 16) | (option << 13) | (S << 12) | (/* Rn */ Xjumptable << 5) | /* Rt */ 0;
+            }
+            {
+                /* BR X0 */
+                *instr++ = 0xD61F0000 | (/* Rn */ 0 << 5);
+            }
+            /* L_reload: */
+            uint32_t *L_reload = instr;
+            {
+                /* CBNZ Wb, L_reload */
+                uint32_t sf = 0; // 32-bit variant
+                ptrdiff_t diff = L_reload - cbnz;
+                assert(-0x40000 <= diff && diff < 0x40000);
+                uint32_t imm19 = (uint32_t)diff & 0x7FFFF;
+                *cbnz = 0x35000000 | (sf << 31) | (imm19 << 5) | /* Rt */ Wb;
+            }
+            /* MOV W0, #(op) */
+            uint32_t value_lo = op & 0xffff;
+            uint32_t value_hi = op >> 16;
+            {
+                /* MOVZ W0, #value_lo */
+                uint32_t sf = 0;
+                uint32_t hw = 0;
+                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
+            }
+            {
+                /* MOVK W0, #value_hi, LSL #16 */
+                uint32_t sf = 0;
+                uint32_t hw = 1;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
+            }
+            {
+                /* B L_epilogue */
+                ptrdiff_t offset = L_epilogue - instr;
+                assert(-0x2000000 <= offset && offset < 0x2000000);
+                uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+                *instr++ = 0x14000000 | imm26;
+            }
+            break;
+        }
+    case 13: /* Orthography */
+        {
+            uint32_t Wa = REG[(op >> 25) & 7];
+            uint32_t value = op & ((UINT32_C(1) << 25) - 1);
+            if (value <= 0xffff) {
+                // 16-bit immediate
+                /* MOVZ Wa, #value */
+                uint32_t sf = 0;
+                uint32_t hw = 0;
+                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value << 5) | /* Rd */ Wa;
+            } else {
+                // 25-bit immediate
+                uint32_t value_lo = value & 0xffff;
+                uint32_t value_hi = value >> 16;
+                {
+                    /* MOVZ Wa, #value_lo */
+                    uint32_t sf = 0;
+                    uint32_t hw = 0;
+                    *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ Wa;
+                }
+                {
+                    /* MOVK Wa, #value_hi, LSL #16 */
+                    uint32_t sf = 0;
+                    uint32_t hw = 1;
+                    *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ Wa;
+                }
+            }
+            break;
+        }
+    default: /* Invalid */
+        {
+            uint32_t value_lo = op & 0xffff;
+            uint32_t value_hi = op >> 16;
+            {
+                /* MOVZ W0, #value_lo */
+                uint32_t sf = 0;
+                uint32_t hw = 0;
+                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
+            }
+            {
+                /* MOVK W0, #value_hi, LSL #16 */
+                uint32_t sf = 0;
+                uint32_t hw = 1;
+                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
+            }
+            {
+                /* BL um_invalid */
+                uint32_t *dest = (uint32_t *)(void *)&um_invalid;
+                ptrdiff_t diff = dest - instr;
+                assert(-0x2000000 <= diff && diff < 0x2000000);
+                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
+                *instr++ = 0x94000000 | imm26;
+            }
+            for (uint32_t i = 0; i < 4; ++i) {
+                /* NOP (allow patching) */
+                *instr++ = 0xD503201F;
+            }
+            break;
+        }
+    }
+    return instr;
+}
 static void compile(struct array *arr0)
 {
     if (program != NULL) {
@@ -145,9 +681,6 @@ static void compile(struct array *arr0)
      * w28: VM's R7
      * They are all callee-save registers.
      */
-    static const uint32_t Xarrays = 19;
-    static const uint32_t Xjumptable = 20;
-    static const uint32_t REG[8] = {21, 22, 23, 24, 25, 26, 27, 28};
 
     /* Prologue */
     /* Save x29, x30 */
@@ -206,7 +739,7 @@ static void compile(struct array *arr0)
     }
     /* Jump to initial_pc (W3) */
     {
-        /* LDR X0, [Xjumptable, Wc, UXTW #3] */
+        /* LDR X0, [Xjumptable, W3, UXTW #3] */
         uint32_t size = 3; // 64-bit variant
         uint32_t option = 2; // UXTW
         uint32_t S = 1; // #3
@@ -219,7 +752,7 @@ static void compile(struct array *arr0)
 
     /* Epilogue */
     /* L_epilogue: */
-    uint32_t *L_epilogue = instr;
+    L_epilogue = instr;
     /* Restore X2 */
     {
         /* LDR X2, [SP], #16 */
@@ -262,379 +795,8 @@ static void compile(struct array *arr0)
     for (uint32_t i = 0; i < arr0->length; ++i) {
         jumptable[i] = instr;
         uint32_t op = arr0->data[i];
-        switch (op >> 28) {
-        case 0: /* Conditional Move */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* CMP Wc, #0 */
-                    uint32_t sf = 0; // 0: 32bit, 1: 64bit
-                    uint32_t sh = 0; // 0: LSL #0, 1: LSL #12
-                    uint32_t imm12 = 0;
-                    *instr++ = 0x7100001F | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ Wc << 5);
-                }
-                {
-                    /* CSEL Wa, Wa, Wb, eq; Wa = eq ? Wa : Wb */
-                    uint32_t sf = 0; // 0: 32bit, 1: 64bit
-                    uint32_t cond = 0; // 0: EQ
-                    *instr++ = 0x1A800000 | (sf << 31) | (/* Rm */ Wb << 16) | (cond << 12) | (/* Rn */ Wa << 5) | /* Rd */ Wa;
-                }
-                break;
-            }
-        case 1: /* Array Index */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                uint32_t Xtmp = 0; // 64-bit, temporary
-                {
-                    /* LDR Xtmp, [Xarrays, Wb, UXTW #3] */
-                    uint32_t size = 3; // 64-bit variant
-                    uint32_t option = 2; // UXTW
-                    uint32_t S = 1; // amount = 3
-                    *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wb << 16) | (option << 13) | (S << 12) | (/* Rn */ Xarrays << 5) | /* Rt */ Xtmp;
-                }
-                {
-                    /* ADD Xtmp, Xtmp, Wc, UXTW #2 */
-                    uint32_t sf = 1; // 0: 32bit, 1: 64bit
-                    uint32_t option = 2; // Rm's width=W, UXTW
-                    uint32_t imm3 = 2;
-                    *instr++ = 0x0B200000 | (sf << 31) | (/* Rm */ Wc << 16) | (option << 13) | (imm3 << 10) | (/* Rn */ Xtmp << 5) | /* Rd */ Xtmp;
-                }
-                {
-                    /* LDR Wa, [Xtmp, #4] */
-                    uint32_t size = 2; // 32-bit variant
-                    uint32_t imm12 = 1;
-                    *instr++ = 0x39400000 | (size << 30) | (imm12 << 10) | (/* Rn */ Xtmp << 5) | /* Rt */ Wa;
-                }
-                break;
-            }
-        case 2: /* Array Amendment */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* MOV W0, Wa */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wa << 16) | /* Rd */ 0;
-                }
-                {
-                    /* MOV W1, Wb */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wb << 16) | /* Rd */ 1;
-                }
-                {
-                    /* MOV W2, Wc */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 2;
-                }
-                {
-                    /* BL um_modify */
-                    uint32_t *dest = (uint32_t *)(void *)&um_modify;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                break;
-            }
-        case 3: /* Addition */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* ADD Wa, Wb, Wc; Wa = Wb + Wc */
-                    uint32_t sf = 0; // 0: 32bit, 1: 64bit
-                    uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: reserved
-                    uint32_t imm6 = 0;
-                    *instr++ = 0x0B000000 | (sf << 31) | (shift << 22) | (/* Rm */ Wc << 16) | (imm6 << 10) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
-                }
-                break;
-            }
-        case 4: /* Multiplication */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* MUL Wa, Wb, Wc; Wa = Wb * Wc */
-                    uint32_t sf = 0;
-                    *instr++ = 0x1B007C00 | (sf << 31) | (/* Rm */ Wc << 16) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
-                }
-                break;
-            }
-        case 5: /* Division */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                // assert(value of Wc != 0);
-                {
-                    /* UDIV Wa, Wb, Wc; Wa = Wb / Wc */
-                    uint32_t sf = 0;
-                    *instr++ = 0x1AC00800 | (sf << 31) | (/* Rm */ Wc << 16) | (/* Rn */ Wb << 5) | Wa;
-                }
-                break;
-            }
-        case 6: /* Not-And */
-            {
-                uint32_t Wa = REG[(op >> 6) & 7];
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                if (Wb == Wc) {
-                    // Bitwise Negation
-                    /* MVN Wa, Wb, Wa = ~Wb */
-                    uint32_t sf = 0;
-                    uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
-                    uint32_t imm6 = 0;
-                    *instr++ = 0x2A2003E0 | (sf << 31) | (shift << 22) | (/* Rm */ Wb << 16) | (imm6 << 10) | /* Rd */ Wa;
-                } else {
-                    // Not-And
-                    {
-                        /* AND Wa, Wb, Wc; Wa = Wb & Wc */
-                        uint32_t sf = 0;
-                        uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
-                        uint32_t imm6 = 0;
-                        *instr++ = 0x0A000000 | (sf << 31) | (shift << 22) | (/* Rm */ Wc << 16) | (imm6 << 10) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
-                    }
-                    {
-                        /* MVN Wa, Wb; Wa = ~Wb */
-                        uint32_t sf = 0;
-                        uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
-                        uint32_t imm6 = 0;
-                        *instr++ = 0x2A2003E0 | (sf << 31) | (shift << 22) | (/* Rm */ Wa << 16) | (imm6 << 10) | /* Rd */ Wa;
-                    }
-                }
-                break;
-            }
-        case 7: /* Halt */
-            {
-                /* MOV W0, #(op) */
-                uint32_t value_lo = op & 0xffff;
-                uint32_t value_hi = op >> 16;
-                {
-                    /* MOVZ W0, #value_lo */
-                    uint32_t sf = 0;
-                    uint32_t hw = 0;
-                    *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-                }
-                {
-                    /* MOVK W0, #value_hi, LSL #16 */
-                    uint32_t sf = 0;
-                    uint32_t hw = 1;
-                    *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-                }
-                {
-                    /* B L_epilogue */
-                    ptrdiff_t offset = L_epilogue - instr;
-                    assert(-0x2000000 <= offset && offset < 0x2000000);
-                    uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-                    *instr++ = 0x14000000 | imm26;
-                }
-                break;
-            }
-        case 8: /* Allocation */
-            {
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* MOV W0, Wc */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
-                }
-                {
-                    /* BL um_alloc */
-                    uint32_t *dest = (uint32_t *)(void *)&um_alloc;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                {
-                    /* MOV Wb, W0 */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 0 << 16) | /* Rd */ Wb;
-                }
-                {
-                    /* MOV Xarrays, X1 */
-                    uint32_t sf = 1; // 64-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 1 << 16) | /* Rd */ Xarrays;
-                }
-                break;
-            }
-        case 9: /* Abandonment */
-            {
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* MOV W0, Wc */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
-                }
-                {
-                    /* BL um_free */
-                    uint32_t *dest = (uint32_t *)(void *)&um_free;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                break;
-            }
-        case 10: /* Output */
-            {
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* MOV W0, Wc */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
-                }
-                {
-                    /* BL um_putchar */
-                    uint32_t *dest = (uint32_t *)(void *)&um_putchar;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                break;
-            }
-        case 11: /* Input */
-            {
-                uint32_t Wc = REG[op & 7];
-                {
-                    /* BL um_getchar */
-                    uint32_t *dest = (uint32_t *)(void *)&um_getchar;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                {
-                    /* MOV Wc, W0 */
-                    uint32_t sf = 0; // 32-bit variant
-                    *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ 0 << 16) | /* Rd */ Wc;
-                }
-                break;
-            }
-        case 12: /* Load Program */
-            {
-                uint32_t Wb = REG[(op >> 3) & 7];
-                uint32_t Wc = REG[op & 7];
-                uint32_t *cbnz = instr;
-                {
-                    /* HLT #0 (-> CBNZ Wb, L_reload) */
-                    uint32_t imm16 = 0;
-                    *instr++ = 0xD4400000 | (imm16 << 5); /* HLT #0 */
-                }
-                {
-                    /* LDR X0, [Xjumptable, Wc, UXTW #3] */
-                    uint32_t size = 3; // 64-bit variant
-                    uint32_t option = 2; // UXTW
-                    uint32_t S = 1; // #3
-                    *instr++ = 0x38600800 | (size << 30) | (/* Rm */ Wc << 16) | (option << 13) | (S << 12) | (/* Rn */ Xjumptable << 5) | /* Rt */ 0;
-                }
-                {
-                    /* BR X0 */
-                    *instr++ = 0xD61F0000 | (/* Rn */ 0 << 5);
-                }
-                /* L_reload: */
-                uint32_t *L_reload = instr;
-                {
-                    /* CBNZ Wb, L_reload */
-                    uint32_t sf = 0; // 32-bit variant
-                    ptrdiff_t diff = L_reload - cbnz;
-                    assert(-0x40000 <= diff && diff < 0x40000);
-                    uint32_t imm19 = (uint32_t)diff & 0x7FFFF;
-                    *cbnz = 0x35000000 | (sf << 31) | (imm19 << 5) | /* Rt */ Wb;
-                }
-                /* MOV W0, #(op) */
-                uint32_t value_lo = op & 0xffff;
-                uint32_t value_hi = op >> 16;
-                {
-                    /* MOVZ W0, #value_lo */
-                    uint32_t sf = 0;
-                    uint32_t hw = 0;
-                    *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-                }
-                {
-                    /* MOVK W0, #value_hi, LSL #16 */
-                    uint32_t sf = 0;
-                    uint32_t hw = 1;
-                    *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-                }
-                {
-                    /* B L_epilogue */
-                    ptrdiff_t offset = L_epilogue - instr;
-                    assert(-0x2000000 <= offset && offset < 0x2000000);
-                    uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-                    *instr++ = 0x14000000 | imm26;
-                }
-                break;
-            }
-        case 13: /* Orthography */
-            {
-                uint32_t Wa = REG[(op >> 25) & 7];
-                uint32_t value = op & ((UINT32_C(1) << 25) - 1);
-                if (value <= 0xffff) {
-                    // 16-bit immediate
-                    /* MOVZ Wa, #value */
-                    uint32_t sf = 0;
-                    uint32_t hw = 0;
-                    *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value << 5) | /* Rd */ Wa;
-                } else {
-                    // 25-bit immediate
-                    uint32_t value_lo = value & 0xffff;
-                    uint32_t value_hi = value >> 16;
-                    {
-                        /* MOVZ Wa, #value_lo */
-                        uint32_t sf = 0;
-                        uint32_t hw = 0;
-                        *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ Wa;
-                    }
-                    {
-                        /* MOVK Wa, #value_hi, LSL #16 */
-                        uint32_t sf = 0;
-                        uint32_t hw = 1;
-                        *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ Wa;
-                    }
-                }
-                break;
-            }
-        default: /* Invalid */
-            {
-                uint32_t value_lo = op & 0xffff;
-                uint32_t value_hi = op >> 16;
-                {
-                    /* MOVZ W0, #value_lo */
-                    uint32_t sf = 0;
-                    uint32_t hw = 0;
-                    *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-                }
-                {
-                    /* MOVK W0, #value_hi, LSL #16 */
-                    uint32_t sf = 0;
-                    uint32_t hw = 1;
-                    *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-                }
-                {
-                    /* BL um_invalid */
-                    uint32_t *dest = (uint32_t *)(void *)&um_invalid;
-                    ptrdiff_t diff = dest - instr;
-                    assert(-0x2000000 <= diff && diff < 0x2000000);
-                    uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                    *instr++ = 0x94000000 | imm26;
-                }
-                for (uint32_t i = 0; i < 3; ++i) {
-                    /* NOP (allow patching) */
-                    *instr++ = 0xD503201F;
-                }
-                break;
-            }
-        }
+        instr = write_instr(instr, op);
+        assert(instr - (uint32_t *)jumptable[i] == instr_size(op));
     }
     jumptable[arr0->length] = instr;
     {
@@ -695,15 +857,17 @@ int main(int argc, char *argv[])
         }
         free(rawprogram);
     }
-    arrays = calloc(1, sizeof(struct array *));
-    arrays[0] = program;
+    arrays = malloc(sizeof(struct array *));
+    arrays[0] = arr0;
     arraysize = 1;
     freelist = NULL;
     fprintf(stderr, "<<<Loaded program. size=%zu bytes>>>\n", rawprogsize);
     compile(arr0);
     fprintf(stderr, "<<<Compiled>>>\n");
+    if (0)
     {
         FILE *out = fopen("jit-dump.hex", "w");
+        assert(out != NULL);
         uint32_t *instr = program;
         uint32_t *instr_end = program_end;
         for (; instr != instr_end; ++instr) {
@@ -711,8 +875,8 @@ int main(int argc, char *argv[])
             fprintf(out, "%02X %02X %02X %02X\n", i & 0xFF, (i >> 8) & 0xFF, (i >> 16) & 0xFF, (i >> 24) & 0xFF);
         }
         fclose(out);
+        fprintf(stderr, "<<<Dumped>>>\n");
     }
-    fprintf(stderr, "<<<Dumped>>>\n");
     uint32_t registers[8] = {0};
     uint32_t pc = 0;
     while (1) {
@@ -724,8 +888,10 @@ int main(int argc, char *argv[])
             return 0;
         case 12: /* Load Program */
             {
+                if (0) {
                 fflush(stdout);
-                fprintf(stderr, "<<<Re-Load Program>>>\n");
+                fprintf(stderr, "<<<Reload Program>>>\n");
+                }
                 uint32_t b = (last_op >> 3) & 7;
                 uint32_t c = last_op & 7;
                 uint32_t i = registers[b];
@@ -737,7 +903,9 @@ int main(int argc, char *argv[])
                 memcpy(newprogram, arrays[i], (length + 1) * sizeof(uint32_t));
                 free(arr0);
                 arr0 = newprogram;
+                arrays[0] = newprogram;
                 pc = registers[c];
+                compile(newprogram);
                 break;
             }
         default:
