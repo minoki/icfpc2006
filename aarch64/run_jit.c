@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <pthread.h> // pthread_jit_write_protect_np
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,6 +9,7 @@
 #include <time.h>
 #include <unistd.h> // getpagesize
 #if defined(__APPLE__)
+#include <pthread.h> // pthread_jit_write_protect_np
 #include <libkern/OSCacheControl.h> // sys_icache_invalidate
 #endif
 
@@ -44,7 +44,9 @@ static clock_t time_modify;
 static clock_t time_alloc;
 static clock_t time_free;
 static clock_t time_compile;
+#if defined(__APPLE__)
 static clock_t time_jitswitch;
+#endif
 static long long inplace_rewrite = 0;
 static long long outofplace_rewrite = 0;
 
@@ -72,8 +74,10 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
         abort();
     }
     */
+#if defined(__APPLE__)
     pthread_jit_write_protect_np(0); // Make the memory writable
     time_jitswitch += clock() - t0;
+#endif
     uint32_t *pstart = (uint32_t *)jumptable[b];
     uint32_t *pend = (uint32_t *)jumptable[b + 1];
     ptrdiff_t inplace_len = pend - pstart;
@@ -130,9 +134,11 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
         abort();
     }
     */
+#if defined(__APPLE__)
     clock_t t1 = clock();
     pthread_jit_write_protect_np(1); // Make the memory executable
     time_jitswitch += clock() - t1;
+#endif
     // fprintf(stderr, "<<<self modification done>>>");
     time_modify += clock() - t0;
 }
@@ -685,10 +691,16 @@ static void compile(struct array *arr0)
         munmap(program, program_mem_capacity);
     }
     size_t pagesize = getpagesize();
+#if defined(__APPLE__)
     pthread_jit_write_protect_np(0); // Make the memory writable
+#endif
     size_t size = 8 * 4 * (size_t)arr0->length + pagesize;
     size = (size + pagesize - 1) / pagesize * pagesize;
-    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_JIT, -1, 0);
+    int flags = MAP_ANON | MAP_PRIVATE;
+#if defined(__APPLE__)
+    flags |= MAP_JIT;
+#endif
+    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags, -1, 0);
     if (mem == MAP_FAILED) {
         int e = errno;
         fflush(stdout);
@@ -887,7 +899,9 @@ static void compile(struct array *arr0)
         abort();
     }
     */
+#if defined(__APPLE__)
     pthread_jit_write_protect_np(1); // Make the memory executable
+#endif
 #if defined(__APPLE__)
     sys_icache_invalidate(mem, (char *)instr - (char *)mem);
 #else
@@ -967,7 +981,9 @@ int main(int argc, char *argv[])
             fprintf(stderr, "<<<time for alloc: %gs>>>\n", (double)time_alloc / (double)CLOCKS_PER_SEC);
             fprintf(stderr, "<<<time for free: %gs>>>\n", (double)time_free / (double)CLOCKS_PER_SEC);
             fprintf(stderr, "<<<time for modify: %gs>>>\n", (double)time_modify / (double)CLOCKS_PER_SEC);
+#if defined(__APPLE__)
             fprintf(stderr, "<<<time for pthread_jit_write_protect_np: %gs>>>\n", (double)time_jitswitch / (double)CLOCKS_PER_SEC);
+#endif
             fprintf(stderr, "<<<in-place rewrite: %lld>>>\n", inplace_rewrite);
             fprintf(stderr, "<<<out-of-place rewrite: %lld>>>\n", outofplace_rewrite);
             return 0;
