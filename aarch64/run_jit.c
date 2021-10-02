@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <pthread.h> // pthread_jit_write_protect_np
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -6,6 +7,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include <sys/mman.h> // mmap, mprotect, munmap
+#include <time.h>
 #include <unistd.h> // getpagesize
 #if defined(__APPLE__)
 #include <libkern/OSCacheControl.h> // sys_icache_invalidate
@@ -28,25 +30,39 @@ struct freelist {
     struct freelist *next;
 };
 
-uint32_t arraysize;
-struct array **arrays; // struct array *arrays[arraysize]
-struct freelist *freelist;
-void **jumptable; // void *jumptable[arr0size + 1]
-void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
-void *program_end;
-size_t program_mem_capacity;
+static uint32_t arraysize;
+static struct array **arrays; // struct array *arrays[arraysize]
+static struct freelist *freelist;
+static void **jumptable; // void *jumptable[arr0size + 1]
+static void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
+static void *program_end;
+static size_t program_mem_capacity;
+static uint32_t *L_epilogue;
+
+static clock_t time_modify;
+static clock_t time_alloc;
+static clock_t time_free;
+static clock_t time_compile;
+static clock_t time_jitswitch;
+static long long inplace_rewrite = 0;
+static long long outofplace_rewrite = 0;
 
 static uint32_t instr_size(uint32_t op);
 static uint32_t *write_instr(uint32_t *instr, uint32_t op);
 
-static void um_modify_0(uint32_t b, uint32_t c)
+static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
 {
+    if (origvalue == c) {
+        return;
+    }
+    clock_t t0 = clock();
     /*
     if (arrays[0]->data[b] != c) {
         arrays[0]->data[b] = c;
     }
     */
     // fprintf(stderr, "<<<self modification>>>");
+    /*
     int ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_WRITE);
     if (ret != 0) {
         int e = errno;
@@ -54,6 +70,9 @@ static void um_modify_0(uint32_t b, uint32_t c)
         fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
         abort();
     }
+    */
+    pthread_jit_write_protect_np(0); // Make the memory writable
+    time_jitswitch += clock() - t0;
     uint32_t *pstart = (uint32_t *)jumptable[b];
     uint32_t *pend = (uint32_t *)jumptable[b + 1];
     ptrdiff_t inplace_len = pend - pstart;
@@ -66,8 +85,10 @@ static void um_modify_0(uint32_t b, uint32_t c)
     }
     uint32_t needed = instr_size(c);
     if (needed <= inplace_len) {
+        ++inplace_rewrite;
         write_instr(pstart, c);
     } else {
+        ++outofplace_rewrite;
         assert(program_mem_capacity >= (size_t)((char *)program_end - (char *)program) + needed);
         uint32_t *instr = program_end;
         uint32_t *start = instr;
@@ -99,6 +120,7 @@ static void um_modify_0(uint32_t b, uint32_t c)
 #else
     __builtin___clear_cache((void *)pstart, (void *)pend);
 #endif
+    /*
     ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_EXEC);
     if (ret != 0) {
         int e = errno;
@@ -106,7 +128,12 @@ static void um_modify_0(uint32_t b, uint32_t c)
         fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
         abort();
     }
+    */
+    clock_t t1 = clock();
+    pthread_jit_write_protect_np(1); // Make the memory executable
+    time_jitswitch += clock() - t1;
     // fprintf(stderr, "<<<self modification done>>>");
+    time_modify += clock() - t0;
 }
 struct alloc_result {
     uint32_t identifier;
@@ -114,6 +141,7 @@ struct alloc_result {
 };
 static struct alloc_result um_alloc(uint32_t capacity)
 {
+    clock_t t0 = clock();
     uint32_t i = 0;
     if (freelist == NULL) {
         i = arraysize;
@@ -130,10 +158,12 @@ static struct alloc_result um_alloc(uint32_t capacity)
     assert(newarr != NULL);
     newarr->length = capacity;
     arrays[i] = newarr;
+    time_alloc += clock() - t0;
     return (struct alloc_result){/* w0 */ i, /* x1 */ arrays};
 }
 static void um_free(uint32_t id)
 {
+    clock_t t0 = clock();
     assert(id < arraysize);
     assert(id != 0);
     assert(arrays[id] != NULL);
@@ -146,6 +176,7 @@ static void um_free(uint32_t id)
         f->next = freelist;
         freelist = f;
     }
+    time_free += clock() - t0;
 }
 static void um_putchar(uint32_t x)
 {
@@ -172,7 +203,6 @@ static void um_invalid(uint32_t op)
 static const uint32_t Xarrays = 19;
 static const uint32_t Xjumptable = 20;
 static const uint32_t REG[8] = {21, 22, 23, 24, 25, 26, 27, 28};
-uint32_t *L_epilogue;
 uint32_t instr_size(uint32_t op)
 {
     switch (op >> 28) {
@@ -181,7 +211,7 @@ uint32_t instr_size(uint32_t op)
     case 1: /* Array Index */
         return 3;
     case 2: /* Array Amendment */
-        return 7;
+        return 8;
     case 3: /* Addition */
         return 1;
     case 4: /* Multiplication */
@@ -220,7 +250,7 @@ uint32_t instr_size(uint32_t op)
             }
         }
     default:
-        return 7;
+        return 8;
     }
 }
 uint32_t *write_instr(uint32_t *instr, uint32_t op)
@@ -293,6 +323,12 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 uint32_t option = 2; // Rm's width=W, UXTW
                 uint32_t imm3 = 2;
                 *instr++ = 0x0B200000 | (sf << 31) | (/* Rm */ Wb << 16) | (option << 13) | (imm3 << 10) | (/* Rn */ Xtmp << 5) | /* Rd */ Xtmp;
+            }
+            {
+                /* LDR W2, [Xtmp, #4] */
+                uint32_t size = 2; // 32-bit variant
+                uint32_t imm12 = 1;
+                *instr++ = 0x39400000 | (size << 30) | (imm12 << 10) | (/* Rn */ Xtmp << 5) | /* Rt */ 2;
             }
             {
                 /* STR Wc, [Xtmp, #4]! */
@@ -639,7 +675,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
                 *instr++ = 0x94000000 | imm26;
             }
-            for (uint32_t i = 0; i < 4; ++i) {
+            for (uint32_t i = 0; i < 5; ++i) {
                 /* NOP (allow patching) */
                 *instr++ = 0xD503201F;
             }
@@ -650,13 +686,15 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
 }
 static void compile(struct array *arr0)
 {
+    clock_t t0 = clock();
     if (program != NULL) {
         munmap(program, program_mem_capacity);
     }
     size_t pagesize = getpagesize();
-    size_t size = 16 * (size_t)arr0->length + pagesize;
+    pthread_jit_write_protect_np(0); // Make the memory writable
+    size_t size = 8 * 4 * (size_t)arr0->length + pagesize;
     size = (size + pagesize - 1) / pagesize * pagesize;
-    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_JIT, -1, 0);
     if (mem == MAP_FAILED) {
         int e = errno;
         fflush(stdout);
@@ -804,6 +842,7 @@ static void compile(struct array *arr0)
         *instr++ = 0xD4400000 | (imm16 << 5); /* HLT #0 */
     }
     program_end = instr;
+    /*
     int ret = mprotect(mem, size, PROT_READ | PROT_EXEC);
     if (ret != 0) {
         int e = errno;
@@ -811,11 +850,14 @@ static void compile(struct array *arr0)
         fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
         abort();
     }
+    */
+    pthread_jit_write_protect_np(1); // Make the memory executable
 #if defined(__APPLE__)
     sys_icache_invalidate(mem, (char *)instr - (char *)mem);
 #else
     __builtin___clear_cache(mem, (void *)instr);
 #endif
+    time_compile += clock() - t0;
 }
 
 int main(int argc, char *argv[])
@@ -885,6 +927,13 @@ int main(int argc, char *argv[])
         case 7: /* Halt */
             fflush(stdout);
             fprintf(stderr, "<<<HALT>>>\n");
+            fprintf(stderr, "<<<time for compile: %gs>>>\n", (double)time_compile / (double)CLOCKS_PER_SEC);
+            fprintf(stderr, "<<<time for alloc: %gs>>>\n", (double)time_alloc / (double)CLOCKS_PER_SEC);
+            fprintf(stderr, "<<<time for free: %gs>>>\n", (double)time_free / (double)CLOCKS_PER_SEC);
+            fprintf(stderr, "<<<time for modify: %gs>>>\n", (double)time_modify / (double)CLOCKS_PER_SEC);
+            fprintf(stderr, "<<<time for pthread_jit_write_protect_np: %gs>>>\n", (double)time_jitswitch / (double)CLOCKS_PER_SEC);
+            fprintf(stderr, "<<<in-place rewrite: %lld>>>\n", inplace_rewrite);
+            fprintf(stderr, "<<<out-of-place rewrite: %lld>>>\n", outofplace_rewrite);
             return 0;
         case 12: /* Load Program */
             {
