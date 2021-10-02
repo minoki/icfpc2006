@@ -1,12 +1,15 @@
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libkern/OSCacheControl.h> // sys_icache_invalidate
 #include <sys/errno.h>
 #include <sys/mman.h> // mmap, mprotect, munmap
 #include <unistd.h> // getpagesize
+#if defined(__APPLE__)
+#include <libkern/OSCacheControl.h> // sys_icache_invalidate
+#endif
 
 #if defined(__GNUC__)
 #define LIKELY(x) __builtin_expect(!!(x), 1)
@@ -646,7 +649,11 @@ static void compile(struct array *arr0)
         fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
         abort();
     }
+#if defined(__APPLE__)
     sys_icache_invalidate(mem, (char *)instr - (char *)mem);
+#else
+    __builtin___clear_cache(mem, (void *)instr);
+#endif
 }
 
 int main(int argc, char *argv[])
