@@ -1,5 +1,5 @@
 .PHONY: all
-all: run
+all: run run_threaded run_threaded_switch run_directthreaded run_directthreaded_tailcall run_verbose
 
 .PHONY: download
 download: um-spec.txt codex.umz sandmark.umz um.um
@@ -39,3 +39,12 @@ run_verbose: run_verbose.c
 
 umix.um: run codex.umz extract.lua
 	lua -e 'io.write("(\\b.bb)(\\v.vv)06FHPVboundvarHRAk\np\n")' | ./run codex.umz | lua extract.lua
+
+.PHONY: clean
+clean:
+	-rm run
+	-rm run_threaded
+	-rm run_threaded_switch
+	-rm run_directthreaded
+	-rm run_directthreaded_tailcall
+	-rm run_verbose
