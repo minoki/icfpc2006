@@ -610,7 +610,7 @@ static void compile(struct array *arr0)
     }
     program = mem;
     program_mem_capacity = size;
-    jumptable = realloc(jumptable, sizeof(void *) * (size_t)arr0->length);
+    jumptable = realloc(jumptable, sizeof(void *) * ((size_t)arr0->length + 1));
     assert(jumptable != NULL);
     uint32_t *instr = mem;
     /*
