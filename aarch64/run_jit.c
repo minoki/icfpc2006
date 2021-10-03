@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,12 +35,14 @@ static uint32_t arraysize;
 static struct array **arrays; // struct array *arrays[arraysize]
 static struct freelist *freelist;
 static void **jumptable; // void *jumptable[arr0size + 1]
-static void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
+static void *program; // uintptr_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
 static void *program_end;
 static size_t program_mem_capacity;
 static uint32_t *L_epilogue;
 static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
+static bool verbose = false;
 
+#if defined(PROFILE)
 static clock_t time_modify;
 static clock_t time_alloc;
 static clock_t time_free;
@@ -47,8 +50,7 @@ static clock_t time_compile;
 #if defined(__APPLE__)
 static clock_t time_jitswitch;
 #endif
-static long long inplace_rewrite = 0;
-static long long outofplace_rewrite = 0;
+#endif
 
 static uint32_t instr_size(uint32_t op);
 static uint32_t *write_instr(uint32_t *instr, uint32_t op);
@@ -58,89 +60,59 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
     if (origvalue == c) {
         return;
     }
+#if defined(PROFILE)
     clock_t t0 = clock();
-    /*
-    if (arrays[0]->data[b] != c) {
-        arrays[0]->data[b] = c;
+#endif
+    uint32_t BL_L_epilogue;
+    {
+        /* BL L_epilogue */
+        ptrdiff_t offset = L_epilogue - (uint32_t *)jumptable[b];
+        assert(-0x2000000 <= offset && offset < 0x2000000);
+        uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+        BL_L_epilogue = 0x94000000 | imm26;
     }
-    */
-    // fprintf(stderr, "<<<self modification>>>");
-    /*
-    int ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_WRITE);
-    if (ret != 0) {
-        int e = errno;
-        fflush(stdout);
-        fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
-        abort();
+    if (*(uint32_t *)jumptable[b] == BL_L_epilogue) {
+#if defined(PROFILE)
+        time_modify += clock() - t0;
+#endif
+        return;
     }
-    */
+    if (verbose) {
+        fprintf(stderr, "<<<self modification>>>");
+    }
 #if defined(__APPLE__)
     pthread_jit_write_protect_np(0); // Make the memory writable
+#if defined(PROFILE)
     time_jitswitch += clock() - t0;
+#endif
 #endif
     uint32_t *pstart = (uint32_t *)jumptable[b];
     uint32_t *pend = (uint32_t *)jumptable[b + 1];
-    ptrdiff_t inplace_len = pend - pstart;
     {
         uint32_t *instr = pstart;
+        *instr++ = BL_L_epilogue;
         while (instr != pend) {
             /* NOP */
             *instr++ = 0xD503201F;
         }
-    }
-    uint32_t needed = instr_size(c);
-    if (needed <= inplace_len) {
-        ++inplace_rewrite;
-        write_instr(pstart, c);
-    } else {
-        ++outofplace_rewrite;
-        assert(program_mem_capacity >= (size_t)((char *)program_end - (char *)program) + needed);
-        uint32_t *instr = program_end;
-        uint32_t *start = instr;
-        {
-            /* B */
-            ptrdiff_t offset = instr - pstart;
-            assert(-0x2000000 <= offset && offset < 0x2000000);
-            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-            *pstart = 0x14000000 | imm26;
-        }
-        /* L: */
-        instr = write_instr(instr, c);
-        {
-            /* B */
-            ptrdiff_t offset = pend - instr;
-            assert(-0x2000000 <= offset && offset < 0x2000000);
-            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-            *instr++ = 0x14000000 | imm26;
-        }
-        program_end = instr;
-#if defined(__APPLE__)
-        sys_icache_invalidate(start, (char *)instr - (char *)start);
-#else
-        __builtin___clear_cache((void *)start, (void *)instr);
-#endif
     }
 #if defined(__APPLE__)
     sys_icache_invalidate(pstart, (char *)pend - (char *)pstart);
 #else
     __builtin___clear_cache((void *)pstart, (void *)pend);
 #endif
-    /*
-    ret = mprotect(program, program_mem_capacity, PROT_READ | PROT_EXEC);
-    if (ret != 0) {
-        int e = errno;
-        fflush(stdout);
-        fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
-        abort();
-    }
-    */
 #if defined(__APPLE__)
+#if defined(PROFILE)
     clock_t t1 = clock();
+#endif
     pthread_jit_write_protect_np(1); // Make the memory executable
+#if defined(PROFILE)
     time_jitswitch += clock() - t1;
 #endif
-    // fprintf(stderr, "<<<self modification done>>>");
+#endif
+#if defined(PROFILE)
     time_modify += clock() - t0;
+#endif
 }
 struct alloc_result {
     uint32_t identifier;
@@ -148,7 +120,9 @@ struct alloc_result {
 };
 static struct alloc_result um_alloc(uint32_t capacity)
 {
+#if defined(PROFILE)
     clock_t t0 = clock();
+#endif
     uint32_t i = 0;
     if (freelist == NULL) {
         i = arraysize;
@@ -165,12 +139,16 @@ static struct alloc_result um_alloc(uint32_t capacity)
     assert(newarr != NULL);
     newarr->length = capacity;
     arrays[i] = newarr;
+#if defined(PROFILE)
     time_alloc += clock() - t0;
+#endif
     return (struct alloc_result){/* w0 */ i, /* x1 */ arrays};
 }
 static void um_free(uint32_t id)
 {
+#if defined(PROFILE)
     clock_t t0 = clock();
+#endif
     assert(id < arraysize);
     assert(id != 0);
     assert(arrays[id] != NULL);
@@ -183,7 +161,9 @@ static void um_free(uint32_t id)
         f->next = freelist;
         freelist = f;
     }
+#if defined(PROFILE)
     time_free += clock() - t0;
+#endif
 }
 static void um_putchar(uint32_t x)
 {
@@ -230,7 +210,7 @@ uint32_t instr_size(uint32_t op)
             }
         }
     case 7: /* Halt */
-        return 3;
+        return 1;
     case 8: /* Allocation */
         return 4;
     case 9: /* Abandonment */
@@ -240,7 +220,7 @@ uint32_t instr_size(uint32_t op)
     case 11: /* Input */
         return 2;
     case 12: /* Load Program */
-        return 6;
+        return 4;
     case 13: /* Orthography */
         {
             uint32_t value = op & ((UINT32_C(1) << 25) - 1);
@@ -251,7 +231,7 @@ uint32_t instr_size(uint32_t op)
             }
         }
     default:
-        return 8;
+        return 1;
     }
 }
 uint32_t *write_instr(uint32_t *instr, uint32_t op)
@@ -362,31 +342,6 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x94000000 | imm26;
             }
             /* L_next: */
-#if 0
-            {
-                /* MOV W0, Wa */
-                uint32_t sf = 0; // 32-bit variant
-                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wa << 16) | /* Rd */ 0;
-            }
-            {
-                /* MOV W1, Wb */
-                uint32_t sf = 0; // 32-bit variant
-                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wb << 16) | /* Rd */ 1;
-            }
-            {
-                /* MOV W2, Wc */
-                uint32_t sf = 0; // 32-bit variant
-                *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 2;
-            }
-            {
-                /* BL um_modify */
-                uint32_t *dest = (uint32_t *)(void *)&um_modify;
-                ptrdiff_t diff = dest - instr;
-                assert(-0x2000000 <= diff && diff < 0x2000000);
-                uint32_t imm26 = (uint32_t)diff & 0x3FFFFFF;
-                *instr++ = 0x94000000 | imm26;
-            }
-#endif
             break;
         }
     case 3: /* Addition */
@@ -461,30 +416,13 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
         }
     case 7: /* Halt */
         {
-            /* MOV W0, #(op) */
-            uint32_t value_lo = op & 0xffff;
-            uint32_t value_hi = op >> 16;
-            {
-                /* MOVZ W0, #value_lo */
-                uint32_t sf = 0;
-                uint32_t hw = 0;
-                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-            }
-            {
-                /* MOVK W0, #value_hi, LSL #16 */
-                uint32_t sf = 0;
-                uint32_t hw = 1;
-                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-            }
-            {
-                /* B L_epilogue */
-                ptrdiff_t offset = L_epilogue - instr;
-                assert(-0x2000000 <= offset && offset < 0x2000000);
-                uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-                *instr++ = 0x14000000 | imm26;
-            }
-            break;
+            /* BL L_epilogue */
+            ptrdiff_t offset = L_epilogue - instr;
+            assert(-0x2000000 <= offset && offset < 0x2000000);
+            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+            *instr++ = 0x94000000 | imm26;
         }
+        break;
     case 8: /* Allocation */
         {
             uint32_t Wb = REG[(op >> 3) & 7];
@@ -599,27 +537,12 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 uint32_t imm19 = (uint32_t)diff & 0x7FFFF;
                 *cbnz = 0x35000000 | (sf << 31) | (imm19 << 5) | /* Rt */ Wb;
             }
-            /* MOV W0, #(op) */
-            uint32_t value_lo = op & 0xffff;
-            uint32_t value_hi = op >> 16;
             {
-                /* MOVZ W0, #value_lo */
-                uint32_t sf = 0;
-                uint32_t hw = 0;
-                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-            }
-            {
-                /* MOVK W0, #value_hi, LSL #16 */
-                uint32_t sf = 0;
-                uint32_t hw = 1;
-                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-            }
-            {
-                /* B L_epilogue */
+                /* BL L_epilogue */
                 ptrdiff_t offset = L_epilogue - instr;
                 assert(-0x2000000 <= offset && offset < 0x2000000);
                 uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-                *instr++ = 0x14000000 | imm26;
+                *instr++ = 0x94000000 | imm26;
             }
             break;
         }
@@ -654,39 +577,21 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
         }
     default: /* Invalid */
         {
-            uint32_t value_lo = op & 0xffff;
-            uint32_t value_hi = op >> 16;
-            {
-                /* MOVZ W0, #value_lo */
-                uint32_t sf = 0;
-                uint32_t hw = 0;
-                *instr++ = 0x52800000 | (sf << 31) | (hw << 21) | (value_lo << 5) | /* Rd */ 0;
-            }
-            {
-                /* MOVK W0, #value_hi, LSL #16 */
-                uint32_t sf = 0;
-                uint32_t hw = 1;
-                *instr++ = 0x72800000 | (sf << 31) | (hw << 21) | (value_hi << 5) | /* Rd */ 0;
-            }
-            {
-                /* B L_epilogue */
-                ptrdiff_t offset = L_epilogue - instr;
-                assert(-0x2000000 <= offset && offset < 0x2000000);
-                uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
-                *instr++ = 0x14000000 | imm26;
-            }
-            for (uint32_t i = 0; i < 5; ++i) {
-                /* NOP (allow patching) */
-                *instr++ = 0xD503201F;
-            }
-            break;
+            /* BL L_epilogue */
+            ptrdiff_t offset = L_epilogue - instr;
+            assert(-0x2000000 <= offset && offset < 0x2000000);
+            uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
+            *instr++ = 0x94000000 | imm26;
         }
+        break;
     }
     return instr;
 }
 static void compile(struct array *arr0)
 {
+#if defined(PROFILE)
     clock_t t0 = clock();
+#endif
     if (program != NULL) {
         munmap(program, program_mem_capacity);
     }
@@ -797,6 +702,13 @@ static void compile(struct array *arr0)
     /* Epilogue */
     /* L_epilogue: */
     L_epilogue = instr;
+    {
+        /* SUB X0, X30, #4 */
+        uint32_t sf = 1;
+        uint32_t sh = 0;
+        uint32_t imm12 = 4;
+        *instr++ = 0x51000000 | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ 30 << 5) | /* Rd */ 0;
+    }
     /* Restore X2 */
     {
         /* LDR X2, [SP], #16 */
@@ -890,15 +802,6 @@ static void compile(struct array *arr0)
         *instr++ = 0xD4400000 | (imm16 << 5); /* HLT #0 */
     }
     program_end = instr;
-    /*
-    int ret = mprotect(mem, size, PROT_READ | PROT_EXEC);
-    if (ret != 0) {
-        int e = errno;
-        fflush(stdout);
-        fprintf(stderr, "<<<mprotect failed with errno = %d (%s)>>>\n", e, strerror(e));
-        abort();
-    }
-    */
 #if defined(__APPLE__)
     pthread_jit_write_protect_np(1); // Make the memory executable
 #endif
@@ -907,19 +810,41 @@ static void compile(struct array *arr0)
 #else
     __builtin___clear_cache(mem, (void *)instr);
 #endif
+#if defined(PROFILE)
     time_compile += clock() - t0;
+#endif
+}
+
+static int usage(const char *argv0)
+{
+    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --dump\n  --verbose\n  --help\n", argv0);
+    return 1;
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc <= 1) {
-        fprintf(stderr, "Usage: %s file.um\n", argv[0]);
-        return 1;
+    bool dump = false;
+    const char *filename = NULL;
+    {
+        for (int i = 1; i < argc; ++i) {
+            if (strcmp(argv[i], "--dump") == 0) {
+                dump = true;
+            } else if (strcmp(argv[i], "--verbose") == 0) {
+                verbose = true;
+            } else if (strcmp(argv[i], "--help") == 0) {
+                return usage(argv[0]);
+            } else {
+                filename = argv[i];
+            }
+        }
+        if (filename == NULL) {
+            return usage(argv[0]);
+        }
     }
     void *rawprogram = NULL;
     size_t rawprogsize = 0;
     {
-        FILE *f = fopen(argv[1], "rb");
+        FILE *f = fopen(filename, "rb");
         assert(f != NULL);
         int seekresult = fseek(f, 0, SEEK_END);
         assert(seekresult == 0);
@@ -956,8 +881,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "<<<Loaded program. size=%zu bytes>>>\n", rawprogsize);
     compile(arr0);
     fprintf(stderr, "<<<Compiled>>>\n");
-    if (0)
-    {
+    if (dump) {
         FILE *out = fopen("jit-dump.hex", "w");
         assert(out != NULL);
         uint32_t *instr = program;
@@ -972,11 +896,111 @@ int main(int argc, char *argv[])
     uint32_t registers[8] = {0};
     uint32_t pc = 0;
     while (1) {
-        uint32_t last_op = ((uint32_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc))program)(arrays, jumptable, registers, pc);
-        switch (last_op >> 28) {
+        uintptr_t addr = ((uintptr_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc))program)(arrays, jumptable, registers, pc);
+
+        // Determine the PC
+        uint32_t pc0 = 0;
+        uint32_t pc1 = arrays[0]->length;
+        while (pc0 + 1 < pc1) {
+            uint32_t mid = (pc0 + pc1) / 2;
+            uintptr_t addrm = (uintptr_t)jumptable[mid];
+            if (addr < addrm) {
+                pc1 = mid;
+            } else {
+                pc0 = mid;
+            }
+        }
+        // pc0 + 1 == pc1
+        uint32_t op = arrays[0]->data[pc0];
+        pc = pc1;
+
+        if (verbose) {
+            fflush(stdout);
+            fprintf(stderr, "<<<interpreted code; op=%u>>>", op >> 28);
+        }
+
+        switch (op >> 28) {
+        case 0: /* Conditional Move */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                if (registers[c] != 0) {
+                    registers[a] = registers[b];
+                }
+                break;
+            }
+        case 1: /* Array Index */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                uint32_t i = registers[b];
+                assert(i < arraysize);
+                struct array *ai = arrays[i];
+                assert(ai != NULL);
+                assert(registers[c] < ai->length);
+                registers[a] = ai->data[registers[c]];
+                break;
+            }
+        case 2: /* Array Amendment */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                uint32_t i = registers[a];
+                assert(i < arraysize);
+                struct array *ai = arrays[i];
+                assert(ai != NULL);
+                assert(registers[b] < ai->length);
+                if (i == 0) {
+                    uint32_t vb = registers[b];
+                    uint32_t vc = registers[c];
+                    uint32_t origvalue = ai->data[vb];
+                    ai->data[vb] = vc;
+                    um_modify_0(vb, vc, origvalue);
+                } else {
+                    ai->data[registers[b]] = registers[c];
+                }
+                break;
+            }
+        case 3: /* Addition */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                registers[a] = registers[b] + registers[c];
+                break;
+            }
+        case 4: /* Multiplication */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                registers[a] = registers[b] * registers[c];
+                break;
+            }
+        case 5: /* Division */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                assert(registers[c] != 0);
+                registers[a] = registers[b] / registers[c];
+                break;
+            }
+        case 6: /* Not-And */
+            {
+                uint32_t a = (op >> 6) & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                registers[a] = ~(registers[b] & registers[c]);
+                break;
+            }
         case 7: /* Halt */
             fflush(stdout);
             fprintf(stderr, "<<<HALT>>>\n");
+#if defined(PROFILE)
             fprintf(stderr, "<<<time for compile: %gs>>>\n", (double)time_compile / (double)CLOCKS_PER_SEC);
             fprintf(stderr, "<<<time for alloc: %gs>>>\n", (double)time_alloc / (double)CLOCKS_PER_SEC);
             fprintf(stderr, "<<<time for free: %gs>>>\n", (double)time_free / (double)CLOCKS_PER_SEC);
@@ -984,34 +1008,69 @@ int main(int argc, char *argv[])
 #if defined(__APPLE__)
             fprintf(stderr, "<<<time for pthread_jit_write_protect_np: %gs>>>\n", (double)time_jitswitch / (double)CLOCKS_PER_SEC);
 #endif
-            fprintf(stderr, "<<<in-place rewrite: %lld>>>\n", inplace_rewrite);
-            fprintf(stderr, "<<<out-of-place rewrite: %lld>>>\n", outofplace_rewrite);
+#endif
             return 0;
+        case 8: /* Allocation */
+            {
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
+                uint32_t capacity = registers[c];
+                struct alloc_result r = um_alloc(capacity);
+                registers[b] = r.identifier;
+                break;
+            }
+        case 9: /* Abandonment */
+            {
+                uint32_t c = op & 7;
+                um_free(registers[c]);
+                break;
+            }
+        case 10: /* Output */
+            {
+                uint32_t c = op & 7;
+                um_putchar(registers[c]);
+                break;
+            }
+        case 11: /* Input */
+            {
+                uint32_t c = op & 7;
+                registers[c] = um_getchar();
+                break;
+            }
         case 12: /* Load Program */
             {
-                if (0) {
-                fflush(stdout);
-                fprintf(stderr, "<<<Reload Program>>>\n");
-                }
-                uint32_t b = (last_op >> 3) & 7;
-                uint32_t c = last_op & 7;
+                uint32_t b = (op >> 3) & 7;
+                uint32_t c = op & 7;
                 uint32_t i = registers[b];
-                assert(i < arraysize);
-                assert(arrays[i] != NULL);
-                uint32_t length = arrays[i]->length;
-                struct array *newprogram = malloc((length + 1) * sizeof(uint32_t));
-                assert(newprogram != NULL);
-                memcpy(newprogram, arrays[i], (length + 1) * sizeof(uint32_t));
-                free(arr0);
-                arr0 = newprogram;
-                arrays[0] = newprogram;
+                if (i != 0) {
+                    if (verbose) {
+                        fflush(stdout);
+                        fprintf(stderr, "<<<Reload Program>>>\n");
+                    }
+                    assert(i < arraysize);
+                    assert(arrays[i] != NULL);
+                    uint32_t length = arrays[i]->length;
+                    struct array *newprogram = malloc((length + 1) * sizeof(uint32_t));
+                    assert(newprogram != NULL);
+                    memcpy(newprogram, arrays[i], (length + 1) * sizeof(uint32_t));
+                    free(arr0);
+                    arr0 = newprogram;
+                    arrays[0] = newprogram;
+                    compile(newprogram);
+                }
                 pc = registers[c];
-                compile(newprogram);
+                break;
+            }
+        case 13: /* Orthography */
+            {
+                uint32_t a = (op >> 25) & 7;
+                uint32_t value = op & ((UINT32_C(1) << 25) - 1);
+                registers[a] = value;
                 break;
             }
         default:
             fflush(stdout);
-            fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", last_op);
+            fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", op);
             abort();
         }
     }
