@@ -21,7 +21,8 @@ struct freelist {
 uint32_t reg[8] = {0};
 struct array **arr;
 size_t arrsize = 1;
-struct freelist *freelist = NULL;
+uint32_t *freelist = NULL, *freelist_end = NULL;
+uint32_t freelist_capacity = 0;
 #define PARAMS size_t pc, struct array *arr0
 #define ARGS pc, arr0
 typedef void (*OP)(PARAMS);
@@ -129,16 +130,14 @@ void OP_Alloc(PARAMS)
     uint32_t c = op & 7;
     uint32_t capacity = reg[c];
     uint32_t i = 0;
-    if (freelist == NULL) {
+    if (freelist_end == freelist) {
         i = arrsize;
         ++arrsize;
         arr = realloc(arr, sizeof(struct array *) * arrsize);
         assert(arr != NULL);
     } else {
-        i = freelist->location;
-        struct freelist *next = freelist->next;
-        free(freelist);
-        freelist = next;
+        i = *(--freelist_end);
+        *freelist_end = 0;
     }
     struct array *newarr = calloc(1 + capacity, sizeof(uint32_t));
     assert(newarr != NULL);
@@ -158,13 +157,14 @@ void OP_Abandon(PARAMS)
     assert(arr[i] != NULL);
     free(arr[i]);
     arr[i] = NULL;
-    {
-        struct freelist *f = malloc(sizeof(struct freelist));
-        assert(f != NULL);
-        f->location = i;
-        f->next = freelist;
-        freelist = f;
+    if (freelist_end - freelist == freelist_capacity) {
+        uint32_t freelist_new_capacity = freelist_capacity == 0 ? 32 : freelist_capacity * 2;
+        freelist = realloc(freelist, freelist_new_capacity * sizeof(uint32_t));
+        memset(freelist + freelist_capacity, 0, (freelist_new_capacity - freelist_capacity) * sizeof(uint32_t));
+        freelist_end = freelist + freelist_capacity;
+        freelist_capacity = freelist_new_capacity;
     }
+    *freelist_end++ = i;
     ++pc;
     return program[pc](ARGS);
 }

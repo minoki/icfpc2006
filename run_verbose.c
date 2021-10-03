@@ -8,10 +8,6 @@ struct array {
     uint32_t length;
     uint32_t data[];
 };
-struct freelist {
-    uint32_t location;
-    struct freelist *next;
-};
 int main(int argc, char *argv[])
 {
     if (argc <= 1) {
@@ -57,7 +53,8 @@ int main(int argc, char *argv[])
     struct array **arr = calloc(1, sizeof(struct array *));
     arr[0] = program;
     size_t arraycount = 1;
-    struct freelist *freelist = NULL;
+    uint32_t *freelist = NULL, *freelist_end = NULL;
+    uint32_t freelist_capacity = 0;
     int arrayamend0 = 0;
     bool modified[8] = {0};
     while (1) {
@@ -176,16 +173,14 @@ int main(int argc, char *argv[])
                 uint32_t c = op & 7;
                 uint32_t capacity = reg[c];
                 uint32_t i = 0;
-                if (freelist == NULL) {
+                if (freelist_end == freelist) {
                     i = arraycount;
                     ++arraycount;
                     arr = realloc(arr, sizeof(struct array *) * arraycount);
                     assert(arr != NULL);
                 } else {
-                    i = freelist->location;
-                    struct freelist *next = freelist->next;
-                    free(freelist);
-                    freelist = next;
+                    i = *(--freelist_end);
+                    *freelist_end = 0;
                 }
                 struct array *newarr = calloc(1 + capacity, sizeof(uint32_t));
                 assert(newarr != NULL);
@@ -208,13 +203,14 @@ int main(int argc, char *argv[])
                 assert(arr[i] != NULL);
                 free(arr[i]);
                 arr[i] = NULL;
-                {
-                    struct freelist *f = malloc(sizeof(struct freelist));
-                    assert(f != NULL);
-                    f->location = i;
-                    f->next = freelist;
-                    freelist = f;
+                if (freelist_end - freelist == freelist_capacity) {
+                    uint32_t freelist_new_capacity = freelist_capacity == 0 ? 32 : freelist_capacity * 2;
+                    freelist = realloc(freelist, freelist_new_capacity * sizeof(uint32_t));
+                    memset(freelist + freelist_capacity, 0, (freelist_new_capacity - freelist_capacity) * sizeof(uint32_t));
+                    freelist_end = freelist + freelist_capacity;
+                    freelist_capacity = freelist_new_capacity;
                 }
+                *freelist_end++ = i;
                 break;
             }
         case 10: /* Output */

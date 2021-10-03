@@ -26,14 +26,11 @@ struct array {
     uint32_t length;
     uint32_t data[];
 };
-struct freelist {
-    uint32_t location;
-    struct freelist *next;
-};
 
 static uint32_t arraysize;
 static struct array **arrays; // struct array *arrays[arraysize]
-static struct freelist *freelist;
+static uint32_t *freelist = NULL, *freelist_end = NULL;
+static uint32_t freelist_capacity = 0;
 static void **jumptable; // void *jumptable[arr0size + 1]
 static void *program; // uintptr_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
 static void *program_end;
@@ -124,16 +121,14 @@ static struct alloc_result um_alloc(uint32_t capacity)
     clock_t t0 = clock();
 #endif
     uint32_t i = 0;
-    if (freelist == NULL) {
+    if (freelist_end == freelist) {
         i = arraysize;
         ++arraysize;
         arrays = realloc(arrays, sizeof(struct array *) * arraysize);
         assert(arrays != NULL);
     } else {
-        i = freelist->location;
-        struct freelist *next = freelist->next;
-        free(freelist);
-        freelist = next;
+        i = *(--freelist_end);
+        *freelist_end = 0;
     }
     struct array *newarr = calloc(1 + capacity, sizeof(uint32_t));
     assert(newarr != NULL);
@@ -154,13 +149,14 @@ static void um_free(uint32_t id)
     assert(arrays[id] != NULL);
     free(arrays[id]);
     arrays[id] = NULL;
-    {
-        struct freelist *f = malloc(sizeof(struct freelist));
-        assert(f != NULL);
-        f->location = id;
-        f->next = freelist;
-        freelist = f;
+    if (freelist_end - freelist == freelist_capacity) {
+        uint32_t freelist_new_capacity = freelist_capacity == 0 ? 32 : freelist_capacity * 2;
+        freelist = realloc(freelist, freelist_new_capacity * sizeof(uint32_t));
+        memset(freelist + freelist_capacity, 0, (freelist_new_capacity - freelist_capacity) * sizeof(uint32_t));
+        freelist_end = freelist + freelist_capacity;
+        freelist_capacity = freelist_new_capacity;
     }
+    *freelist_end++ = id;
 #if defined(PROFILE)
     time_free += clock() - t0;
 #endif
