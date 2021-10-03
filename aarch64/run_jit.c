@@ -330,7 +330,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 1;
             }
             {
-                /* BL um_modify_0 */
+                /* BL L_jump_to_fn[0] (um_modify_0) */
                 uint32_t *dest = (uint32_t *)L_jump_to_fn[0];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
@@ -401,7 +401,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                     *instr++ = 0x0A000000 | (sf << 31) | (shift << 22) | (/* Rm */ Wc << 16) | (imm6 << 10) | (/* Rn */ Wb << 5) | /* Rd */ Wa;
                 }
                 {
-                    /* MVN Wa, Wb; Wa = ~Wb */
+                    /* MVN Wa, Wa; Wa = ~Wa */
                     uint32_t sf = 0;
                     uint32_t shift = 0; // 0: LSL, 1: LSR, 2: ASR, 3: ROR
                     uint32_t imm6 = 0;
@@ -429,7 +429,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
             }
             {
-                /* BL um_alloc */
+                /* BL L_jump_to_fn[1] (um_alloc) */
                 uint32_t *dest = (uint32_t *)L_jump_to_fn[1];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
@@ -457,7 +457,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
             }
             {
-                /* BL um_free */
+                /* BL L_jump_to_fn[2] (um_free) */
                 uint32_t *dest = (uint32_t *)L_jump_to_fn[2];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
@@ -475,7 +475,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 *instr++ = 0x2A0003E0 | (sf << 31) | (/* Rm */ Wc << 16) | /* Rd */ 0;
             }
             {
-                /* BL um_putchar */
+                /* BL L_jump_to_fn[3] (um_putchar) */
                 uint32_t *dest = (uint32_t *)L_jump_to_fn[3];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
@@ -488,7 +488,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
         {
             uint32_t Wc = REG[op & 7];
             {
-                /* BL um_getchar */
+                /* BL L_jump_to_fn[4] (um_getchar) */
                 uint32_t *dest = (uint32_t *)L_jump_to_fn[4];
                 ptrdiff_t diff = dest - instr;
                 assert(-0x2000000 <= diff && diff < 0x2000000);
