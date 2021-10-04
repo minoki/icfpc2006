@@ -23,6 +23,15 @@
 * [JITあれこれ | κeenのHappy Hacκing Blog](https://keens.github.io/blog/2018/12/01/jitarekore/)
 * [WASM3の末尾呼び出しVMがかしこい - Qiita](https://qiita.com/okuoku/items/ed52f48ce871f429759e)
 
+## codex.umz
+
+* [extract.lua](extract.lua)
+    * Extract `umix.um` from `codex.umz`'s output. Use as `make umix.um`.
+* [extract-CBV.hs](extract-CBV.hs)
+    * Extract CBV's logo as a PNG image.
+
+![](CBV.png)
+
 ## QVICKBASIC
 
 * [hack3.bas](hack3.bas)

@@ -40,6 +40,9 @@ run_verbose: run_verbose.c
 umix.um: run codex.umz extract.lua
 	lua -e 'io.write("(\\b.bb)(\\v.vv)06FHPVboundvarHRAk\np\n")' | ./run codex.umz | lua extract.lua
 
+CBV.png: codex.umz extract-CBV.hs
+	cabal v2-run extract-CBV.hs
+
 .PHONY: clean
 clean:
 	-rm run

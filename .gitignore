@@ -10,4 +10,6 @@ run_threaded_switch
 run_directthreaded
 run_directthreaded_tailcall
 run_verbose
+dist-newstyle
+jit-dump.hex
 
