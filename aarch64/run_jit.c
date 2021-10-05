@@ -144,19 +144,23 @@ static uint32_t *write_instr(uint32_t *instr, uint32_t op)
             uint32_t Wa = REG[(op >> 6) & 7];
             uint32_t Wb = REG[(op >> 3) & 7];
             uint32_t Wc = REG[op & 7];
-            // Wa == Wb => NOP
-            {
-                /* CMP Wc, #0 */
-                uint32_t sf = 0; // 0: 32bit, 1: 64bit
-                uint32_t sh = 0; // 0: LSL #0, 1: LSL #12
-                uint32_t imm12 = 0;
-                *instr++ = 0x7100001F | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ Wc << 5);
-            }
-            {
-                /* CSEL Wa, Wa, Wb, eq; Wa = eq ? Wa : Wb */
-                uint32_t sf = 0; // 0: 32bit, 1: 64bit
-                uint32_t cond = 0; // 0: EQ
-                *instr++ = 0x1A800000 | (sf << 31) | (/* Rm */ Wb << 16) | (cond << 12) | (/* Rn */ Wa << 5) | /* Rd */ Wa;
+            if (Wa == Wb) {
+                /* NOP */
+                *instr++ = 0xD503201F;
+            } else {
+                {
+                    /* CMP Wc, #0 */
+                    uint32_t sf = 0; // 0: 32bit, 1: 64bit
+                    uint32_t sh = 0; // 0: LSL #0, 1: LSL #12
+                    uint32_t imm12 = 0;
+                    *instr++ = 0x7100001F | (sf << 31) | (sh << 22) | (imm12 << 10) | (/* Rn */ Wc << 5);
+                }
+                {
+                    /* CSEL Wa, Wa, Wb, eq; Wa = eq ? Wa : Wb */
+                    uint32_t sf = 0; // 0: 32bit, 1: 64bit
+                    uint32_t cond = 0; // 0: EQ
+                    *instr++ = 0x1A800000 | (sf << 31) | (/* Rm */ Wb << 16) | (cond << 12) | (/* Rn */ Wa << 5) | /* Rd */ Wa;
+                }
             }
             break;
         }
