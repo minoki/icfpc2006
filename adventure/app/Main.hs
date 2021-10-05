@@ -18,16 +18,17 @@ import Control.Monad.State.Strict
 import Control.Monad.Writer.Strict
 import Control.Monad.Trans
 import qualified Data.List as List
+import qualified Data.Text.Short as T
 
 PT.TokenParser { PT.reserved = reserved, PT.stringLiteral = stringLiteral, PT.parens = parens } = PT.makeTokenParser haskellStyle
 
-data Condition = Pristine {- item name -} String
-               | Broken (MultiSet.MultiSet Condition) Condition
+data Condition = Pristine {- item name -} !T.ShortText
+               | Broken !(MultiSet.MultiSet Condition) !Condition
                deriving (Eq, Ord, Show)
 
-data Item = Item { name :: String
-                 , adjectives :: Maybe String
-                 , condition :: Condition
+data Item = Item { name :: !T.ShortText
+                 , adjectives :: !(Maybe T.ShortText)
+                 , condition :: !Condition
                  }
             deriving (Eq,Show)
 
@@ -37,7 +38,7 @@ parensWord word p = parens (reserved word >> p) <?> ("(" ++ word ++ ")")
 
 kindP :: Parser Condition
 kindP = parensWord "kind" $ do name <- parensWord "name" stringLiteral
-                               conditionP name
+                               conditionP (T.pack name)
 
 kindsP :: Parser [Condition]
 kindsP = (parens $ do k1 <- kindP
@@ -45,7 +46,7 @@ kindsP = (parens $ do k1 <- kindP
                       pure (k1 : ks)
          ) <|> pure []
 
-conditionP :: String -> Parser Condition
+conditionP :: T.ShortText -> Parser Condition
 conditionP itemName = parensWord "condition"
                       (parens ((reserved "pristine" $> Pristine itemName)
                                 <|> do reserved "broken"
@@ -57,9 +58,9 @@ conditionP itemName = parensWord "condition"
                       )
 
 itemP :: Parser [Item]
-itemP = parensWord "item" $ do name <- parensWord "name" stringLiteral
+itemP = parensWord "item" $ do name <- T.pack <$> parensWord "name" stringLiteral
                                _description <- parensWord "description" stringLiteral
-                               adjectives <- parensWord "adjectives" $ ((Just <$> (parens $ parensWord "adjective" stringLiteral)) <|> pure Nothing)
+                               adjectives <- parensWord "adjectives" $ ((Just . T.pack <$> (parens $ parensWord "adjective" stringLiteral)) <|> pure Nothing)
                                condition <- conditionP name
                                let item = Item { name = name
                                                , adjectives = adjectives
@@ -75,10 +76,6 @@ resultP = parensWord "success"
                parensWord "room" $ do _name <- parensWord "name" stringLiteral
                                       _description <- parensWord "description" stringLiteral
                                       parensWord "items" (parens itemP <|> pure [])
-
-getItemName :: Condition -> String
-getItemName (Pristine name) = name
-getItemName (Broken _ cond) = getItemName cond
 
 match :: Condition -- ^ target
       -> Condition
@@ -139,8 +136,8 @@ buildRecipe target = do
               buildRecipe target
 
 itemToString :: Item -> String
-itemToString (Item { name, adjectives = Just adjective, condition }) = adjective ++ " " ++ name
-itemToString (Item { name, adjectives = Nothing, condition }) = name
+itemToString (Item { name, adjectives = Just adjective, condition }) = T.unpack adjective ++ " " ++ T.unpack name
+itemToString (Item { name, adjectives = Nothing, condition }) = T.unpack name
 
 merge :: [a] -> [a] -> [[a]]
 merge [] ys = [ys]
@@ -168,40 +165,41 @@ neededLater :: Item -> [(Item,Item,Item)] -> Bool
 neededLater item [] = False
 neededLater item ((x,y,_):cs) = x == item || y == item || neededLater item cs
 
-takeItem :: Item -> [(Item,Item,Item)] -> ToCommand ()
-takeItem item todo = do (m, inventory, stack) <- get
-                        if item `elem` inventory then
-                          pure ()
-                        else do
-                          let !len_inventory = length inventory
-                          when (len_inventory >= 6) empty
-                          let !new_max_inventory = max m (len_inventory + 1)
-                          case stack of
-                            [] -> empty
-                            x:xs | x == item -> do tell [CTake x]
-                                                   put (new_max_inventory, x:inventory, xs)
-                                 | neededLater x todo -> do tell [CTake x]
-                                                            put (new_max_inventory, x:inventory, xs)
-                                                            takeItem item todo
-                                 | otherwise -> do tell [CTake x,CIncinerate x]
-                                                   put (new_max_inventory, inventory, xs)
-                                                   takeItem item todo
+takeItem :: Int -> Item -> [(Item,Item,Item)] -> ToCommand ()
+takeItem !limit item todo = do (m, inventory, stack) <- get
+                               if item `elem` inventory then
+                                 pure ()
+                               else do
+                                 let !len_inventory = length inventory
+                                 when (len_inventory >= limit) empty
+                                 let !new_max_inventory = max m (len_inventory + 1)
+                                 case stack of
+                                   [] -> empty
+                                   x:xs | x == item -> do tell [CTake x]
+                                                          put (new_max_inventory, x:inventory, xs)
+                                        | neededLater x todo -> do tell [CTake x]
+                                                                   put (new_max_inventory, x:inventory, xs)
+                                                                   takeItem limit item todo
+                                        | otherwise -> do tell [CTake x,CIncinerate x]
+                                                          put (new_max_inventory, inventory, xs)
+                                                          takeItem limit item todo
 
-solve :: [(Item,Item,Item)] -> ToCommand ()
-solve [] = pure ()
-solve ((broken,part,result):xs) = (do takeItem broken ((part,part,result):xs)
-                                      takeItem part xs
-                                      tell [CCombine broken part]
-                                      (m, inventory, stack) <- get
-                                      put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
-                                      solve xs
-                                  ) <|> (do takeItem part ((broken,broken,result):xs)
-                                            takeItem broken xs
-                                            tell [CCombine broken part]
-                                            (m, inventory, stack) <- get
-                                            put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
-                                            solve xs
-                                        )
+solve :: Int -> [(Item,Item,Item)] -> ToCommand ()
+solve !limit [] = pure ()
+solve !limit ((broken,part,result):xs)
+  = (do takeItem limit broken ((part,part,result):xs)
+        takeItem limit part xs
+        tell [CCombine broken part]
+        (m, inventory, stack) <- get
+        put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
+        solve limit xs
+    ) <|> (do takeItem limit part ((broken,broken,result):xs)
+              takeItem limit broken xs
+              tell [CCombine broken part]
+              (m, inventory, stack) <- get
+              put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
+              solve limit xs
+          )
 
 commandToString :: Command -> String
 commandToString (CTake item) = "take " ++ itemToString item
@@ -217,22 +215,26 @@ main = do args <- getArgs
                 Left err -> print err
                 Right items -> do mapM_ print items
                                   putStrLn "---"
-                                  {-
-                                  let result :: [[(Item,Item,Item)]]
-                                      result = do recipe <- evalStateT (buildRecipe (Pristine target)) $ map RLeaf items
-                                                  recipeToCombine recipe
-                                  mapM_ (print . map combineToString) result
-                                  putStrLn "---"
-                                  -}
-                                  let result :: [((Int,[Item],[Item]),[Command])]
-                                      result = do recipe <- evalStateT (buildRecipe (Pristine target)) $ map RLeaf items
-                                                  combineCommands <- recipeToCombine recipe
-                                                  -- runWriterT (execStateT (takeItem (Item {name = "cache", adjectives = Nothing, condition = Pristine "cache"}) []) (0,[],items))
-                                                  runWriterT (execStateT (solve combineCommands) (0,[],items))
-                                      min_inventory = minimum $ map (\((m,_,_),_) -> m) result
-                                  putStrLn $ "minimum number of inventories: " ++ show min_inventory
-                                  putStrLn "---"
-                                  let result0 = head $ filter (\((m,_,_),_) -> m == min_inventory) result
-                                  forM_ (snd result0) $ \command -> do
-                                    putStrLn (commandToString command)
+                                  let recipes :: [Recipe]
+                                      recipes = evalStateT (buildRecipe (Pristine (T.pack target))) $ map RLeaf items
+                                  putStrLn $ "# of recipes: " ++ show (length recipes)
+                                  let combinations :: [[(Item,Item,Item)]]
+                                      combinations = do recipe <- recipes
+                                                        recipeToCombine recipe
+                                  putStrLn $ "# of combinations: " ++ show (length combinations)
+                                  let go !limit | limit > 6 = putStrLn "Suitable solution not found"
+                                                | otherwise = do
+                                                    let result :: [((Int,[Item],[Item]),[Command])]
+                                                        result = do combination <- combinations
+                                                                    runWriterT (execStateT (solve limit combination) (0,[],items))
+                                                    if null result then
+                                                      go (limit + 1)
+                                                    else do
+                                                      let min_inventory = minimum $ map (\((m,_,_),_) -> m) result
+                                                      putStrLn $ "minimum number of inventories: " ++ show min_inventory
+                                                      putStrLn "---"
+                                                      let result0 = head $ filter (\((m,_,_),_) -> m == min_inventory) result
+                                                      forM_ (snd result0) $ \command -> do
+                                                        putStrLn (commandToString command)
+                                  go 4
             [] -> putStrLn "Usage: adventure [filename] [target]"
