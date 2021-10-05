@@ -13,14 +13,6 @@
 #include <libkern/OSCacheControl.h> // sys_icache_invalidate
 #endif
 
-#if defined(__GNUC__)
-#define LIKELY(x) __builtin_expect(!!(x), 1)
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#else
-#define LIKELY(x) (x)
-#define UNLIKELY(x) (x)
-#endif
-
 struct array {
     uint32_t length;
     uint32_t data[];
