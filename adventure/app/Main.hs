@@ -1,28 +1,37 @@
 -- Input: switch sexp
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE BangPatterns #-}
 module Main where
 import qualified Text.Parsec as Parsec
 import Text.Parsec ((<?>))
 import Text.Parsec.Language (haskellStyle)
 import qualified Text.Parsec.Token as PT
-import Text.Parsec.Token (TokenParser(..))
 import Text.Parsec.String (Parser, parseFromFile)
 import Data.Functor
 import Control.Applicative
+import Control.Monad
+import System.Environment
+import qualified Data.Map.Strict as Map
+import qualified MultiSet as MultiSet
+import MultiSet (MultiSet)
+import Control.Monad.State.Strict
+import Control.Monad.Writer.Strict
+import Control.Monad.Trans
+import qualified Data.List as List
 
 PT.TokenParser { PT.reserved = reserved, PT.stringLiteral = stringLiteral, PT.parens = parens } = PT.makeTokenParser haskellStyle
 
 data Condition = Pristine {- item name -} String
-               | Broken [Condition] Condition
-               deriving Show
+               | Broken (MultiSet.MultiSet Condition) Condition
+               deriving (Eq, Ord, Show)
 
 data Item = Item { name :: String
-                 , description :: String
-                 , adjectives :: [String]
+                 , adjectives :: Maybe String
                  , condition :: Condition
-                 , piled_on :: Maybe Item
                  }
-            deriving Show
+            deriving (Eq,Show)
 
+-- '(' <word> <p> ')'
 parensWord :: String -> Parser a -> Parser a
 parensWord word p = parens (reserved word >> p) <?> ("(" ++ word ++ ")")
 
@@ -42,35 +51,188 @@ conditionP itemName = parensWord "condition"
                                 <|> do reserved "broken"
                                        innerCond <- conditionP itemName
                                        missing <- parensWord "missing" kindsP
-                                       return $ Broken missing innerCond
+                                       return $ Broken (MultiSet.fromList missing) innerCond
                               )
                        <?> "(pristine) or (broken)"
                       )
 
-itemP :: Parser Item
+itemP :: Parser [Item]
 itemP = parensWord "item" $ do name <- parensWord "name" stringLiteral
-                               description <- parensWord "description" stringLiteral
-                               adjectives <- parensWord "adjectives" $ ((parens $ many $ parensWord "adjective" stringLiteral) <|> pure [])
+                               _description <- parensWord "description" stringLiteral
+                               adjectives <- parensWord "adjectives" $ ((Just <$> (parens $ parensWord "adjective" stringLiteral)) <|> pure Nothing)
                                condition <- conditionP name
-                               piled_on <- parensWord "piled_on" ((Just <$> parens itemP) <|> pure Nothing)
-                               pure $ Item { name = name
-                                           , description = description
-                                           , adjectives = adjectives
-                                           , condition = condition
-                                           , piled_on = piled_on
-                                           }
+                               let item = Item { name = name
+                                               , adjectives = adjectives
+                                               , condition = condition
+                                               }
+                               (item :) <$> parensWord "piled_on" (parens itemP <|> pure [])
 
-lookResult :: Parser (Maybe Item)
-lookResult = parensWord "success"
-             $ parensWord "command"
-             $ parens
-             $ do reserved "look" <|> reserved "go"
-                  parensWord "room" $ do name <- parensWord "name" stringLiteral
-                                         description <- parensWord "description" stringLiteral
-                                         parensWord "items" ((Just <$> parens itemP) <|> pure Nothing)
+resultP :: Parser [Item]
+resultP = parensWord "success"
+          $ parensWord "command"
+          $ parens
+          $ do reserved "look" <|> reserved "go"
+               parensWord "room" $ do _name <- parensWord "name" stringLiteral
+                                      _description <- parensWord "description" stringLiteral
+                                      parensWord "items" (parens itemP <|> pure [])
+
+getItemName :: Condition -> String
+getItemName (Pristine name) = name
+getItemName (Broken _ cond) = getItemName cond
+
+match :: Condition -- ^ target
+      -> Condition
+      -> Maybe [MultiSet Condition]
+match (Pristine name) (Pristine name') | name == name' = Just []
+                                       | otherwise = Nothing
+match target@(Pristine _) (Broken conds cond) = (conds :) <$> match target cond
+match (Broken _ _) (Pristine _) = Nothing
+match target@(Broken conds cond) (Broken conds' cond') = case match target cond' of
+                                                           Just needed -> Just (conds' : needed)
+                                                           Nothing -> case conds `MultiSet.subsetAndDifference` conds' of
+                                                                        Just diff -> case match cond cond' of
+                                                                                       Nothing -> Nothing
+                                                                                       Just needed -> Just (diff : needed)
+                                                                        Nothing -> Nothing
+
+search :: Eq a => (a -> Bool) -> [a] -> [(a,[a],[a])]
+search f xs = go [] xs
+  where go rest [] = []
+        go rest (x:xs) | f x = (x,reverse rest,xs) : go (x:rest) xs
+                       | otherwise = go (x:rest) xs
+
+searchEx :: Eq a => (a -> Maybe b) -> [a] -> [(a,b,[a],[a])]
+searchEx f xs = go [] xs
+  where go rest [] = []
+        go rest (x:xs) | Just y <- f x = (x,y,reverse rest,xs) : go (x:rest) xs
+                       | otherwise = go (x:rest) xs
+
+data Recipe = RLeaf !Item
+            | RCombine {- result -} !Item {- broken -} !Recipe {- part -} !Recipe
+            deriving (Eq,Show)
+
+type BuildRecipe a = StateT [Recipe] [] a
+
+recipeToItem :: Recipe -> Item
+recipeToItem (RLeaf item) = item
+recipeToItem (RCombine item _ _) = item
+
+buildRecipe :: Condition -> BuildRecipe Recipe
+buildRecipe target = do
+  items <- get
+  (baseItem,missings,items1,items2) <- lift $ searchEx (\y -> match target $ condition $ recipeToItem y) items
+  put (items1 ++ items2)
+  case missings of
+    [] -> pure baseItem
+    m:_ | MultiSet.null m -> pure baseItem
+    m:_ -> do cond <- lift $ MultiSet.toList m
+              part <- buildRecipe cond
+              let newCondition = case condition (recipeToItem baseItem) of
+                                   Pristine _ -> error "unexpected"
+                                   Broken set cond' -> let set' = MultiSet.deleteOne cond set
+                                                       in if MultiSet.null set' then
+                                                            cond'
+                                                          else
+                                                            Broken set' cond'
+                  combined = (recipeToItem baseItem) { condition = newCondition }
+              modify (RCombine combined baseItem part :)
+              buildRecipe target
+
+itemToString :: Item -> String
+itemToString (Item { name, adjectives = Just adjective, condition }) = adjective ++ " " ++ name
+itemToString (Item { name, adjectives = Nothing, condition }) = name
+
+merge :: [a] -> [a] -> [[a]]
+merge [] ys = [ys]
+merge xs [] = [xs]
+merge xs0@(x:xs) ys0@(y:ys) = (x:) <$> merge xs ys0 <|> (y:) <$> merge xs0 ys
+
+recipeToCombine :: Recipe -> [[(Item,Item,Item)]]
+recipeToCombine (RLeaf item) = [[]]
+recipeToCombine (RCombine result broken part) = do commands <- recipeToCombine broken
+                                                   commands' <- recipeToCombine part
+                                                   commands'' <- merge commands commands'
+                                                   pure $ commands'' ++ [(recipeToItem broken,recipeToItem part,result)]
+
+combineToString :: (Item,Item,Item) -> String
+combineToString (broken,part,result) = "combine " ++ itemToString broken ++ " with " ++ itemToString part
+
+data Command = CTake !Item
+             | CIncinerate !Item
+             | CCombine {- broken -} !Item {- part -} !Item
+             deriving (Eq,Show)
+
+type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item]) (WriterT [Command] []) a
+
+neededLater :: Item -> [(Item,Item,Item)] -> Bool
+neededLater item [] = False
+neededLater item ((x,y,_):cs) = x == item || y == item || neededLater item cs
+
+takeItem :: Item -> [(Item,Item,Item)] -> ToCommand ()
+takeItem item todo = do (m, inventory, stack) <- get
+                        if item `elem` inventory then
+                          pure ()
+                        else do
+                          let !len_inventory = length inventory
+                          when (len_inventory >= 6) empty
+                          let !new_max_inventory = max m (len_inventory + 1)
+                          case stack of
+                            [] -> empty
+                            x:xs | x == item -> do tell [CTake x]
+                                                   put (new_max_inventory, x:inventory, xs)
+                                 | neededLater x todo -> do tell [CTake x]
+                                                            put (new_max_inventory, x:inventory, xs)
+                                                            takeItem item todo
+                                 | otherwise -> do tell [CTake x,CIncinerate x]
+                                                   put (new_max_inventory, inventory, xs)
+                                                   takeItem item todo
+
+solve :: [(Item,Item,Item)] -> ToCommand ()
+solve [] = pure ()
+solve ((broken,part,result):xs) = (do takeItem broken ((part,part,result):xs)
+                                      takeItem part xs
+                                      tell [CCombine broken part]
+                                      (m, inventory, stack) <- get
+                                      put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
+                                      solve xs
+                                  ) <|> (do takeItem part ((broken,broken,result):xs)
+                                            takeItem broken xs
+                                            tell [CCombine broken part]
+                                            (m, inventory, stack) <- get
+                                            put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
+                                            solve xs
+                                        )
+
+commandToString :: Command -> String
+commandToString (CTake item) = "take " ++ itemToString item
+commandToString (CIncinerate item) = "incinerate " ++ itemToString item
+commandToString (CCombine broken part) = "combine " ++ itemToString broken ++ " with " ++ itemToString part
 
 main :: IO ()
-main = do input <- getContents
-          case Parsec.parse lookResult "input" input of
-            Left err -> print err
-            Right item -> print item
+main = do args <- getArgs
+          case args of
+            [filename,target] -> do
+              input <- readFile filename
+              case Parsec.parse resultP "input" input of
+                Left err -> print err
+                Right items -> do mapM_ print items
+                                  putStrLn "---"
+                                  {-
+                                  let result :: [[(Item,Item,Item)]]
+                                      result = do recipe <- evalStateT (buildRecipe (Pristine target)) $ map RLeaf items
+                                                  recipeToCombine recipe
+                                  mapM_ (print . map combineToString) result
+                                  putStrLn "---"
+                                  -}
+                                  let result :: [((Int,[Item],[Item]),[Command])]
+                                      result = do recipe <- evalStateT (buildRecipe (Pristine target)) $ map RLeaf items
+                                                  combineCommands <- recipeToCombine recipe
+                                                  -- runWriterT (execStateT (takeItem (Item {name = "cache", adjectives = Nothing, condition = Pristine "cache"}) []) (0,[],items))
+                                                  runWriterT (execStateT (solve combineCommands) (0,[],items))
+                                      min_inventory = minimum $ map (\((m,_,_),_) -> m) result
+                                  putStrLn $ "minimum number of inventories: " ++ show min_inventory
+                                  putStrLn "---"
+                                  let result0 = head $ filter (\((m,_,_),_) -> m == min_inventory) result
+                                  forM_ (snd result0) $ \command -> do
+                                    putStrLn (commandToString command)
+            [] -> putStrLn "Usage: adventure [filename] [target]"
