@@ -27,13 +27,10 @@ subsetAndDifference (MultiSet a) (MultiSet b) = go [] (Map.toAscList a) (Map.toA
                                              GT -> go ((y,m):acc) xs0 ys
 
 subset :: Ord a => MultiSet a -> MultiSet a -> Bool
-subset (MultiSet a) (MultiSet b) = go (Map.toAscList a) (Map.toAscList b)
-  where go [] _ = True
-        go (_:_) [] = False
-        go xs0@((x,n):xs) ((y,m):ys) = case compare x y of
-                                         EQ -> n <= m && go xs ys
-                                         LT -> False
-                                         GT -> go xs0 ys
+subset (MultiSet a) (MultiSet b) = Map.isSubmapOfBy (<=) a b
+
+difference :: Ord a => MultiSet a -> MultiSet a -> MultiSet a
+difference (MultiSet a) (MultiSet b) = MultiSet (Map.differenceWith (\x y -> if x > y then Just $! (x - y) else Nothing) a b)
 
 toList :: MultiSet a -> [a]
 toList (MultiSet m) = go (Map.toAscList m)
@@ -46,7 +43,4 @@ size :: MultiSet a -> Int
 size (MultiSet m) = Map.foldr (+) 0 m
 
 deleteOne :: Ord a => a -> MultiSet a -> MultiSet a
-deleteOne x (MultiSet m) = case Map.splitLookup x m of
-                             (m1, Nothing, m2) -> MultiSet m
-                             (m1, Just n, m2) | n <= 1 -> MultiSet (Map.union m1 m2)
-                                              | otherwise -> MultiSet (Map.insert x (n-1) $ Map.union m1 m2)
+deleteOne x (MultiSet m) = MultiSet (Map.update (\n -> if n > 1 then Just $! (n - 1) else Nothing) x m)
