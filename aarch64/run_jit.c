@@ -7,7 +7,6 @@
 #include <string.h>
 #include <sys/errno.h>
 #include <sys/mman.h> // mmap, mprotect, munmap
-#include <time.h>
 #include <unistd.h> // getpagesize
 #if defined(__APPLE__)
 #include <pthread.h> // pthread_jit_write_protect_np
@@ -39,27 +38,11 @@ static uint32_t *L_epilogue;
 static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
 static bool verbose = false;
 
-#if defined(PROFILE)
-static clock_t time_modify;
-static clock_t time_alloc;
-static clock_t time_free;
-static clock_t time_compile;
-#if defined(__APPLE__)
-static clock_t time_jitswitch;
-#endif
-#endif
-
-static uint32_t instr_size(uint32_t op);
-static uint32_t *write_instr(uint32_t *instr, uint32_t op);
-
 static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
 {
     if (origvalue == c) {
         return;
     }
-#if defined(PROFILE)
-    clock_t t0 = clock();
-#endif
     uint32_t BL_L_epilogue;
     {
         /* BL L_epilogue */
@@ -69,9 +52,6 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
         BL_L_epilogue = 0x94000000 | imm26;
     }
     if (*(uint32_t *)jumptable[b] == BL_L_epilogue) {
-#if defined(PROFILE)
-        time_modify += clock() - t0;
-#endif
         return;
     }
     if (verbose) {
@@ -79,9 +59,6 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
     }
 #if defined(__APPLE__)
     pthread_jit_write_protect_np(0); // Make the memory writable
-#if defined(PROFILE)
-    time_jitswitch += clock() - t0;
-#endif
 #endif
     uint32_t *pstart = (uint32_t *)jumptable[b];
     uint32_t *pend = (uint32_t *)jumptable[b + 1];
@@ -99,16 +76,7 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
     __builtin___clear_cache((void *)pstart, (void *)pend);
 #endif
 #if defined(__APPLE__)
-#if defined(PROFILE)
-    clock_t t1 = clock();
-#endif
     pthread_jit_write_protect_np(1); // Make the memory executable
-#if defined(PROFILE)
-    time_jitswitch += clock() - t1;
-#endif
-#endif
-#if defined(PROFILE)
-    time_modify += clock() - t0;
 #endif
 }
 struct alloc_result {
@@ -117,9 +85,6 @@ struct alloc_result {
 };
 static struct alloc_result um_alloc(uint32_t capacity)
 {
-#if defined(PROFILE)
-    clock_t t0 = clock();
-#endif
     uint32_t i = 0;
     if (freelist_end == freelist) {
         i = arraysize;
@@ -134,16 +99,10 @@ static struct alloc_result um_alloc(uint32_t capacity)
     assert(newarr != NULL);
     newarr->length = capacity;
     arrays[i] = newarr;
-#if defined(PROFILE)
-    time_alloc += clock() - t0;
-#endif
     return (struct alloc_result){/* w0 */ i, /* x1 */ arrays};
 }
 static void um_free(uint32_t id)
 {
-#if defined(PROFILE)
-    clock_t t0 = clock();
-#endif
     assert(id < arraysize);
     assert(id != 0);
     assert(arrays[id] != NULL);
@@ -157,9 +116,6 @@ static void um_free(uint32_t id)
         freelist_capacity = freelist_new_capacity;
     }
     *freelist_end++ = id;
-#if defined(PROFILE)
-    time_free += clock() - t0;
-#endif
 }
 static void um_putchar(uint32_t x)
 {
@@ -180,57 +136,7 @@ static uint32_t um_getchar(void)
 static const uint32_t Xarrays = 19;
 static const uint32_t Xjumptable = 20;
 static const uint32_t REG[8] = {21, 22, 23, 24, 25, 26, 27, 28};
-uint32_t instr_size(uint32_t op)
-{
-    switch (op >> 28) {
-    case 0: /* Conditional Move */
-        return 2;
-    case 1: /* Array Index */
-        return 3;
-    case 2: /* Array Amendment */
-        return 8;
-    case 3: /* Addition */
-        return 1;
-    case 4: /* Multiplication */
-        return 1;
-    case 5: /* Division */
-        return 1;
-    case 6: /* Not-And */
-        {
-            uint32_t b = (op >> 3) & 7;
-            uint32_t c = op & 7;
-            if (b == c) {
-                return 1;
-            } else {
-                return 2;
-            }
-        }
-    case 7: /* Halt */
-        return 1;
-    case 8: /* Allocation */
-        return 4;
-    case 9: /* Abandonment */
-        return 2;
-    case 10: /* Output */
-        return 2;
-    case 11: /* Input */
-        return 2;
-    case 12: /* Load Program */
-        return 4;
-    case 13: /* Orthography */
-        {
-            uint32_t value = op & ((UINT32_C(1) << 25) - 1);
-            if (value <= 0xffff) {
-                return 1;
-            } else {
-                return 2;
-            }
-        }
-    default:
-        return 1;
-    }
-}
-uint32_t *write_instr(uint32_t *instr, uint32_t op)
+static uint32_t *write_instr(uint32_t *instr, uint32_t op)
 {
     switch (op >> 28) {
     case 0: /* Conditional Move */
@@ -238,6 +144,7 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
             uint32_t Wa = REG[(op >> 6) & 7];
             uint32_t Wb = REG[(op >> 3) & 7];
             uint32_t Wc = REG[op & 7];
+            // Wa == Wb => NOP
             {
                 /* CMP Wc, #0 */
                 uint32_t sf = 0; // 0: 32bit, 1: 64bit
@@ -585,9 +492,6 @@ uint32_t *write_instr(uint32_t *instr, uint32_t op)
 }
 static void compile(struct array *arr0)
 {
-#if defined(PROFILE)
-    clock_t t0 = clock();
-#endif
     if (program != NULL) {
         munmap(program, program_mem_capacity);
     }
@@ -790,7 +694,6 @@ static void compile(struct array *arr0)
         jumptable[i] = instr;
         uint32_t op = arr0->data[i];
         instr = write_instr(instr, op);
-        assert(instr - (uint32_t *)jumptable[i] == instr_size(op));
     }
     jumptable[arr0->length] = instr;
     {
@@ -805,9 +708,6 @@ static void compile(struct array *arr0)
     sys_icache_invalidate(mem, (char *)instr - (char *)mem);
 #else
     __builtin___clear_cache(mem, (void *)instr);
-#endif
-#if defined(PROFILE)
-    time_compile += clock() - t0;
 #endif
 }
 
@@ -996,15 +896,6 @@ int main(int argc, char *argv[])
         case 7: /* Halt */
             fflush(stdout);
             fprintf(stderr, "<<<HALT>>>\n");
-#if defined(PROFILE)
-            fprintf(stderr, "<<<time for compile: %gs>>>\n", (double)time_compile / (double)CLOCKS_PER_SEC);
-            fprintf(stderr, "<<<time for alloc: %gs>>>\n", (double)time_alloc / (double)CLOCKS_PER_SEC);
-            fprintf(stderr, "<<<time for free: %gs>>>\n", (double)time_free / (double)CLOCKS_PER_SEC);
-            fprintf(stderr, "<<<time for modify: %gs>>>\n", (double)time_modify / (double)CLOCKS_PER_SEC);
-#if defined(__APPLE__)
-            fprintf(stderr, "<<<time for pthread_jit_write_protect_np: %gs>>>\n", (double)time_jitswitch / (double)CLOCKS_PER_SEC);
-#endif
-#endif
             return 0;
         case 8: /* Allocation */
             {
