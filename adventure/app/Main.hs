@@ -178,16 +178,6 @@ merge :: [a] -> [a] -> [[a]]
 merge [] ys = [ys]
 merge xs [] = [xs]
 merge xs0@(x:xs) ys0@(y:ys) = (x:) <$> merge xs ys0 <|> (y:) <$> merge xs0 ys
-{-
-recipeToCombine :: Recipe -> [[(Item,Item,Item)]]
-recipeToCombine (RLeaf item) = [[]]
-recipeToCombine (RCombine result broken parts) = do commands <- recipeToCombine broken
-                                                    commands' <- recipeToCombine parts
-                                                    commands'' <- merge commands commands'
-                                                    pure $ commands'' ++ [(recipeToItem broken,recipeToItem part,result)]
--}
-combineToString :: (Item,Item,Item) -> String
-combineToString (broken,part,result) = "combine " ++ itemToString broken ++ " with " ++ itemToString part
 
 data Command = CTake !Item
              | CIncinerate !Item
@@ -195,10 +185,6 @@ data Command = CTake !Item
              deriving (Eq,Show)
 
 type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item], {- keep -} MultiSet.MultiSet Condition) (WriterT [Command] []) a
-
-neededLater :: Item -> [(Item,Item,Item)] -> Bool
-neededLater item [] = False
-neededLater item ((x,y,_):cs) = x == item || y == item || neededLater item cs
 
 takeItem :: Int -> Condition -> ToCommand Item
 takeItem !limit item = do
@@ -224,32 +210,30 @@ takeItem !limit item = do
                  put (new_max_inventory, inventory, xs, keep)
                  takeItem limit item
 
-solve :: Int -> Recipe -> ToCommand Item
-solve !limit (RLeaf item) = takeItem limit item
-solve !limit (RCombine result broken parts)
-  = (do broken' <- solve limit broken
-        (part,restParts) <- lift $ lift $ takeOneOfList parts
-        part' <- solve limit part
-        tell [CCombine broken' part']
-        (m, inventory, stack, keep) <- get
-        let combined = combineResult broken' (condition part')
-        put (m, combined : List.filter (\x -> x /= broken' && x /= part') inventory, stack, keep)
-        if null restParts then
-          pure combined
-          else
-          solve limit (RCombine result broken restParts)
-    ) <|> (do (part,restParts) <- lift $ lift $ takeOneOfList parts
-              part' <- solve limit part
-              broken' <- solve limit broken
-              tell [CCombine broken' part']
-              (m, inventory, stack, keep) <- get
-              let combined = combineResult broken' (condition part')
-              put (m, combined : List.filter (\x -> x /= broken' && x /= part') inventory, stack, keep)
-              if null restParts then
-                pure combined
-                else
-                solve limit (RCombine result broken restParts)
-          )
+reduce :: Int -> Recipe -> ToCommand (Maybe Recipe)
+reduce !limit (RLeaf item) = do takeItem limit item
+                                pure Nothing
+reduce !limit (RCombine result (RLeaf broken) parts)
+  = do (part,restParts) <- lift $ lift $ takeOneOfList parts
+       case part of
+         RLeaf part' -> do (broken', part'') <- (do broken' <- takeItem limit broken
+                                                    part'' <- takeItem limit part'
+                                                    pure (broken', part'')
+                                                ) <|> do part'' <- takeItem limit part'
+                                                         broken' <- takeItem limit broken
+                                                         pure (broken', part'')
+                           tell [CCombine broken' part'']
+                           (m, inventory, stack, keep) <- get
+                           let combined = combineResult broken' part'
+                           put (m, combined : List.filter (\x -> x /= broken' && x /= part'') inventory, stack, keep)
+                           pure $ Just $ if null restParts then
+                                           RLeaf (condition combined)
+                                         else
+                                           RCombine result (RLeaf (condition combined)) restParts
+         RCombine {} -> do part' <- reduce limit part
+                           case part' of
+                             Nothing -> error "impossible"
+                             Just part'' -> pure $ Just $ RCombine result (RLeaf broken) (part'':restParts)
   where
     combineResult :: Item -> Condition -> Item
     combineResult broken part = case condition broken of
@@ -259,6 +243,25 @@ solve !limit (RCombine result broken parts)
                                                                            broken { condition = cond' }
                                                                          else
                                                                            broken { condition = Broken missings' cond' name depth }
+reduce !limit (RCombine result broken@(RCombine {}) parts)
+  = (do Just broken' <- reduce limit broken
+        pure $ Just $ RCombine result broken' parts
+    ) <|> (do (part,restParts) <- lift $ lift $ takeOneOfList parts
+              case part of
+                RLeaf {} -> empty
+                RCombine {} -> do part' <- reduce limit part
+                                  case part' of
+                                    Nothing -> error "impossible"
+                                    Just part'' -> pure $ Just $ RCombine result broken (part'':restParts)
+          )
+
+solve :: Int -> Recipe -> ToCommand ()
+solve !limit recipe = go recipe
+  where
+    go recipe = do r <- reduce limit recipe
+                   case r of
+                     Nothing -> pure ()
+                     Just r' -> go r'
 
 commandToString :: Command -> String
 commandToString (CTake item) = "take " ++ itemToString item
@@ -285,7 +288,8 @@ main = do args <- getArgs
                                                         result = do recipe <- recipes
                                                                     let keep = MultiSet.fromList $ recipeDependencies recipe
                                                                     runWriterT (execStateT (solve limit recipe) (0,[],items,keep))
-                                                    if null result then
+                                                    if null result then do
+                                                      putStrLn $ "Could not be done with space=" ++ show limit
                                                       go (limit + 1)
                                                     else do
                                                       let min_inventory = minimum $ map (\((m,_,_,_),_) -> m) result
