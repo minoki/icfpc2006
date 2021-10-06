@@ -19,6 +19,7 @@ import Control.Monad.Writer.Strict
 import Control.Monad.Trans
 import qualified Data.List as List
 import qualified Data.Text.Short as T
+import Data.Maybe
 
 PT.TokenParser { PT.reserved = reserved, PT.stringLiteral = stringLiteral, PT.parens = parens } = PT.makeTokenParser haskellStyle
 
@@ -126,37 +127,48 @@ searchEx f xs = go [] xs
         go rest (x:xs) | Just y <- f x = (x,y,rest,xs) : go (x:rest) xs
                        | otherwise = go (x:rest) xs
 
-data Recipe = RLeaf !Item
-            | RCombine {- result -} !Item {- broken -} !Recipe {- part -} !Recipe
-            deriving (Eq,Show)
+takeOneOfList :: [a] -> [(a,[a])]
+takeOneOfList xs = go [] xs
+  where go rest [] = []
+        go rest (x:xs) = (x,rest++xs) : go (x:rest) xs
 
-type BuildRecipe a = StateT (Map.Map T.ShortText [Recipe]) [] a
+data Recipe = RLeaf !Condition
+            | RCombine {- result -} !Condition {- broken -} !Recipe {- parts -} [Recipe]
+            deriving (Eq,Ord,Show)
 
-recipeToItem :: Recipe -> Item
-recipeToItem (RLeaf item) = item
-recipeToItem (RCombine item _ _) = item
+type BuildRecipe a = StateT (Map.Map T.ShortText (MultiSet Condition)) [] a
+
+recipeResult :: Recipe -> Condition
+recipeResult (RLeaf item) = item
+recipeResult (RCombine item _ _) = item
+
+recipeDependencies :: Recipe -> [Condition]
+recipeDependencies recipe = go recipe []
+  where
+    go :: Recipe -> [Condition] -> [Condition]
+    go (RLeaf item) items = item : items
+    go (RCombine _ broken parts) items = List.foldl' (\items part -> go part items) (go broken items) parts
 
 buildRecipe :: Condition -> BuildRecipe Recipe
 buildRecipe target = do
-  items <- gets (Map.findWithDefault [] (itemNameOfCondition target))
-  (baseItem,missings,items1,items2) <- lift $ searchEx (\y -> match target $ condition $ recipeToItem y) items
-  modify (Map.insert (itemNameOfCondition target) (items1 ++ items2))
-  go (condition (recipeToItem baseItem)) baseItem missings
+  items <- gets (Map.findWithDefault MultiSet.empty (itemNameOfCondition target))
+  (baseItem,items') <- lift $ MultiSet.takeOne items
+  missings <- lift $ maybeToList $ match target baseItem
+  modify (Map.insert (itemNameOfCondition target) items')
+  go baseItem (RLeaf baseItem) missings
   where
     go !baseCond !baseItem [] = pure baseItem
     go !baseCond !baseItem (m:ms)
       | MultiSet.null m = pure baseItem
-      | otherwise = do cond <- lift $ MultiSet.toList m
-                       part <- buildRecipe cond
-                       let !newCondition = case baseCond of
-                                             Pristine _ -> error "unexpected"
-                                             Broken set cond' name' d' -> let set' = MultiSet.deleteOne cond set
-                                                                          in if MultiSet.null set' then
-                                                                               cond'
-                                                                             else
-                                                                               Broken set' cond' name' d'
-                           !combined = (recipeToItem baseItem) { condition = newCondition }
-                       go newCondition (RCombine combined baseItem part) ms
+      | otherwise = do let !combined = case baseCond of
+                                         Pristine _ -> error "unexpected"
+                                         Broken set cond' name' d' -> let set' = MultiSet.difference set m
+                                                                      in if MultiSet.null set' then
+                                                                           cond'
+                                                                         else
+                                                                           Broken set' cond' name' d'
+                       parts <- mapM buildRecipe $ MultiSet.toList m
+                       go combined (RCombine combined baseItem parts) ms
 
 itemToString :: Item -> String
 itemToString (Item { name, adjectives = Just adjective, condition }) = T.unpack adjective ++ " " ++ T.unpack name
@@ -166,14 +178,14 @@ merge :: [a] -> [a] -> [[a]]
 merge [] ys = [ys]
 merge xs [] = [xs]
 merge xs0@(x:xs) ys0@(y:ys) = (x:) <$> merge xs ys0 <|> (y:) <$> merge xs0 ys
-
+{-
 recipeToCombine :: Recipe -> [[(Item,Item,Item)]]
 recipeToCombine (RLeaf item) = [[]]
-recipeToCombine (RCombine result broken part) = do commands <- recipeToCombine broken
-                                                   commands' <- recipeToCombine part
-                                                   commands'' <- merge commands commands'
-                                                   pure $ commands'' ++ [(recipeToItem broken,recipeToItem part,result)]
-
+recipeToCombine (RCombine result broken parts) = do commands <- recipeToCombine broken
+                                                    commands' <- recipeToCombine parts
+                                                    commands'' <- merge commands commands'
+                                                    pure $ commands'' ++ [(recipeToItem broken,recipeToItem part,result)]
+-}
 combineToString :: (Item,Item,Item) -> String
 combineToString (broken,part,result) = "combine " ++ itemToString broken ++ " with " ++ itemToString part
 
@@ -182,47 +194,71 @@ data Command = CTake !Item
              | CCombine {- broken -} !Item {- part -} !Item
              deriving (Eq,Show)
 
-type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item]) (WriterT [Command] []) a
+type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item], {- keep -} MultiSet.MultiSet Condition) (WriterT [Command] []) a
 
 neededLater :: Item -> [(Item,Item,Item)] -> Bool
 neededLater item [] = False
 neededLater item ((x,y,_):cs) = x == item || y == item || neededLater item cs
 
-takeItem :: Int -> Item -> [(Item,Item,Item)] -> ToCommand ()
-takeItem !limit item todo = do (m, inventory, stack) <- get
-                               if item `elem` inventory then
-                                 pure ()
-                               else do
-                                 let !len_inventory = length inventory
-                                 guard (len_inventory < limit)
-                                 let !new_max_inventory = max m (len_inventory + 1)
-                                 case stack of
-                                   [] -> empty
-                                   x:xs | x == item -> do tell [CTake x]
-                                                          put (new_max_inventory, x:inventory, xs)
-                                        | neededLater x todo -> do tell [CTake x]
-                                                                   put (new_max_inventory, x:inventory, xs)
-                                                                   takeItem limit item todo
-                                        | otherwise -> do tell [CTake x,CIncinerate x]
-                                                          put (new_max_inventory, inventory, xs)
-                                                          takeItem limit item todo
+takeItem :: Int -> Condition -> ToCommand Item
+takeItem !limit item = do
+  (m, inventory, stack, keep) <- get
+  case List.find (\i -> condition i == item) inventory of
+    Just i -> pure i
+    Nothing -> do
+      let !len_inventory = length inventory
+      guard (len_inventory < limit)
+      let !new_max_inventory = max m (len_inventory + 1)
+      case stack of
+        [] -> empty
+        x:xs | condition x == item -> do
+                 tell [CTake x]
+                 put (new_max_inventory, x : inventory, xs, MultiSet.deleteOne (condition x) keep)
+                 pure x
+             | condition x `MultiSet.member` keep -> do
+                 tell [CTake x]
+                 put (new_max_inventory, x : inventory, xs, MultiSet.deleteOne (condition x) keep)
+                 takeItem limit item
+             | otherwise -> do
+                 tell [CTake x,CIncinerate x]
+                 put (new_max_inventory, inventory, xs, keep)
+                 takeItem limit item
 
-solve :: Int -> [(Item,Item,Item)] -> ToCommand ()
-solve !limit [] = pure ()
-solve !limit ((broken,part,result):xs)
-  = (do takeItem limit broken ((part,part,result):xs)
-        takeItem limit part xs
-        tell [CCombine broken part]
-        (m, inventory, stack) <- get
-        put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
-        solve limit xs
-    ) <|> (do takeItem limit part ((broken,broken,result):xs)
-              takeItem limit broken xs
-              tell [CCombine broken part]
-              (m, inventory, stack) <- get
-              put (m, result : filter (\x -> x /= broken && x /= part) inventory, stack)
-              solve limit xs
+solve :: Int -> Recipe -> ToCommand Item
+solve !limit (RLeaf item) = takeItem limit item
+solve !limit (RCombine result broken parts)
+  = (do broken' <- solve limit broken
+        (part,restParts) <- lift $ lift $ takeOneOfList parts
+        part' <- solve limit part
+        tell [CCombine broken' part']
+        (m, inventory, stack, keep) <- get
+        let combined = combineResult broken' (condition part')
+        put (m, combined : List.filter (\x -> x /= broken' && x /= part') inventory, stack, keep)
+        if null restParts then
+          pure combined
+          else
+          solve limit (RCombine result broken restParts)
+    ) <|> (do (part,restParts) <- lift $ lift $ takeOneOfList parts
+              part' <- solve limit part
+              broken' <- solve limit broken
+              tell [CCombine broken' part']
+              (m, inventory, stack, keep) <- get
+              let combined = combineResult broken' (condition part')
+              put (m, combined : List.filter (\x -> x /= broken' && x /= part') inventory, stack, keep)
+              if null restParts then
+                pure combined
+                else
+                solve limit (RCombine result broken restParts)
           )
+  where
+    combineResult :: Item -> Condition -> Item
+    combineResult broken part = case condition broken of
+                                  Pristine _ -> error "invalid"
+                                  Broken missings cond' name depth -> let missings' = MultiSet.deleteOne part missings
+                                                                      in if MultiSet.null missings then
+                                                                           broken { condition = cond' }
+                                                                         else
+                                                                           broken { condition = Broken missings' cond' name depth }
 
 commandToString :: Command -> String
 commandToString (CTake item) = "take " ++ itemToString item
@@ -238,27 +274,24 @@ main = do args <- getArgs
                 Left err -> print err
                 Right items -> do mapM_ print items
                                   putStrLn "---"
-                                  let itemsSortedByName :: Map.Map T.ShortText [Recipe]
-                                      itemsSortedByName = Map.map (List.map RLeaf) $ List.foldl' (\m item -> Map.insertWith (++) (name item) [item] m) Map.empty items
+                                  let itemsByName :: Map.Map T.ShortText (MultiSet.MultiSet Condition)
+                                      itemsByName = MultiSet.fromList <$> List.foldl' (\m item -> Map.insertWith (++) (name item) [condition item] m) Map.empty items
                                   let recipes :: [Recipe]
-                                      recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsSortedByName
+                                      recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
                                   putStrLn $ "# of recipes: " ++ show (length recipes)
-                                  let combinations :: [[(Item,Item,Item)]]
-                                      combinations = do recipe <- recipes
-                                                        recipeToCombine recipe
-                                  putStrLn $ "# of combinations: " ++ show (length combinations)
                                   let go !limit | limit > 6 = putStrLn "Suitable solution not found"
                                                 | otherwise = do
-                                                    let result :: [((Int,[Item],[Item]),[Command])]
-                                                        result = do combination <- combinations
-                                                                    runWriterT (execStateT (solve limit combination) (0,[],items))
+                                                    let result :: [((Int,[Item],[Item],MultiSet.MultiSet Condition),[Command])]
+                                                        result = do recipe <- recipes
+                                                                    let keep = MultiSet.fromList $ recipeDependencies recipe
+                                                                    runWriterT (execStateT (solve limit recipe) (0,[],items,keep))
                                                     if null result then
                                                       go (limit + 1)
                                                     else do
-                                                      let min_inventory = minimum $ map (\((m,_,_),_) -> m) result
+                                                      let min_inventory = minimum $ map (\((m,_,_,_),_) -> m) result
                                                       putStrLn $ "required space: " ++ show min_inventory
                                                       putStrLn "---"
-                                                      let result0 = head $ filter (\((m,_,_),_) -> m == min_inventory) result
+                                                      let result0 = head $ filter (\((m,_,_,_),_) -> m == min_inventory) result
                                                       forM_ (snd result0) $ \command -> do
                                                         putStrLn (commandToString command)
                                   go 4

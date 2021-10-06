@@ -3,11 +3,20 @@ import qualified Data.Map.Strict as Map
 
 newtype MultiSet a = MultiSet (Map.Map a Int) deriving (Eq, Ord, Show)
 
+empty :: MultiSet a
+empty = MultiSet Map.empty
+
 null :: MultiSet a -> Bool
 null (MultiSet m) = Map.null m
 
+member :: Ord a => a -> MultiSet a -> Bool
+member x (MultiSet m) = Map.member x m
+
 fromList :: Ord a => [a] -> MultiSet a
 fromList xs = MultiSet $ Map.fromListWith (+) $ map (\x -> (x,1)) xs
+
+insert :: Ord a => a -> MultiSet a -> MultiSet a
+insert x (MultiSet m) = MultiSet $ Map.insertWith (+) x 1 m
 
 -- if a `subset` b then Just (b `difference` a) else Nothing
 subsetAndDifference :: Ord a => MultiSet a -> MultiSet a -> Maybe (MultiSet a)
@@ -44,3 +53,6 @@ size (MultiSet m) = Map.foldr (+) 0 m
 
 deleteOne :: Ord a => a -> MultiSet a -> MultiSet a
 deleteOne x (MultiSet m) = MultiSet (Map.update (\n -> if n > 1 then Just $! (n - 1) else Nothing) x m)
+
+takeOne :: Ord a => MultiSet a -> [(a,MultiSet a)]
+takeOne (MultiSet m) = [(x,deleteOne x (MultiSet m)) | x <- Map.keys m]
