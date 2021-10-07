@@ -1,0 +1,122 @@
+Balance Certified Professional Program Puzzles
+
+This file contains a list of puzzles.  Solutions to these puzzles may count
+towards your BCPP certification.  Use the certify program to submit
+your solutions.  (Note: Not all maximum scores have been attained by the
+BCPP organization.)
+
+
+Puzzle: stop
+Initial memory: M[0-5] = [0, 1, 0, 0, 0, 0]
+ Remainder of memory initialized from /etc/passwd
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: Any
+Final registers: Any
+Certification point value: 5 - 10
+
+Puzzle: stop1
+Initial memory: M[0-5] = [0, 1, 0, 0, 0, 0].
+ Remainder of memory initialized from /etc/passwd
+Initial registers: {0, 0, 0, 0} {0, 0}
+Final memory: Any
+Final registers: Any
+Certification point value: 5 - 10
+
+Puzzle: stop127
+Initial memory: All zeroes except for M[127] = 127
+Initial registers: {0, 0, 0, 0} {0, 0}
+Final memory: Any
+Final registers: Any
+Certification point value: 5 - 20
+
+Puzzle: stop128
+Initial memory: All zeroes except for M[128] = 128
+Initial registers: {0, 0, 0, 0} {0, 0}
+Final memory: Any
+Final registers: Any
+Certification point value: 5 - 15
+
+Puzzle: copymem
+Initial memory: M[0] = a, where a <> 0.  M[1] = 1.
+ All other memory locations initialized to 0
+Initial registers: {0, 0, 0, 0} {0, 0}
+Final memory: Any
+Final registers: At least one register should contain a
+Certification point value: 60 - 200
+
+Puzzle: copyreg
+Initial memory: M[0-7] = [1, 2, 4, 8, 16, 32, 64, 128].
+ All other memory locations initialized to 0.
+Initial registers: {a, 0, 1, 2} {3, 4} where a <> 0
+Final memory: At least one memory location should contain a
+Final registers: Any
+Certification point value: 60 - 200
+
+Puzzle: swapmem
+Initial memory: M[0-7] = [1, 2, 4, 8, 16, 32, 64, 128].
+ All other memory locations initialized to 0.
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: There exist i and j such that 0 <= i < j <= 7 and
+M[i] contains the original value of M[j] and M[j]
+contains the original value of M[i]
+Final registers: Any
+Certification point value: 10 - 40
+
+Puzzle: swapreg
+Initial memory: All memory locations initialized to 1
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: Any
+Final registers: Swap any two distinct registers.  The value of the
+other registers may be anything
+Certification point value: 5 - 50
+
+Puzzle: swapreg2
+Initial memory: All memory locations initialized to 1
+Initial registers: {a, b, c, d} {x, y} where a, b, c, d, x, y <> 0
+Final memory: Any
+Final registers: Swap any two distinct registers.  The value of the
+other registers may be anything
+Certification point value: 10 - 50
+
+Puzzle: addmem
+Initial memory: M[0] = a, M[1] = b, where a, b <> 0
+ All other memory locations initialized to 0
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: M[2] = a + b
+Final registers: Any
+Certification point value: 5 - 40
+
+Puzzle: addmem2
+Initial memory: M[0] = a, M[1] = b, where a, b <> 0
+ All other memory locations initialized to 0
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: M[0] = a, M[1] = b, M[2] = a + b.
+ All other memory locations must be 0
+Final registers: Any
+Certification point value: 10 - 50
+
+Puzzle: multmem
+Initial memory: M[0] = a, M[1] = b, where a, b <> 0
+ All other memory locations initialized to 0
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: M[2] = a * b
+Final registers: Any
+Certification point value: 60 - 200
+
+Puzzle: fillmem
+Initial memory: M[0-2] = [a, i, j], where a <> 0, 8 <= i < j <= 255
+ M[4-7] = [1, 2, 4, 8] All other memory locations are initialized to 0
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: Memory locations from 8 to (i-1) must contain 0
+ Memory locations from i to (j-1) must contain a
+ Memory locations from j to 255 must contain 0
+ (all ranges are inclusive)
+Final registers: Any
+Certification point value: 60 - 200
+
+Puzzle: clearreg
+Initial memory: For each i from 0 to 255, M[i] = i
+Initial registers: {0, 1, 2, 3} {4, 5}
+Final memory: Any
+Final registers: All registers must be set to 0
+Certification point value: 20 - 100

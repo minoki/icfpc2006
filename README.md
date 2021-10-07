@@ -36,3 +36,7 @@
 
 * [hack3.bas](hack3.bas)
     * A program to obtain passwords for `ftd`, `ohmega`, and `howie`.
+
+## ADVENTURE
+
+See [adventure.md](adventure.md).
