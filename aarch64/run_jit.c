@@ -30,6 +30,7 @@ static uint32_t *L_epilogue;
 static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
 static bool verbose = false;
 static char *presupplied_input = NULL;
+static bool discard_initial_output = false;
 
 static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
 {
@@ -113,7 +114,9 @@ static void um_free(uint32_t id)
 static void um_putchar(uint32_t x)
 {
     assert(x <= 255);
-    putchar(x);
+    if (!discard_initial_output || presupplied_input == NULL || *presupplied_input == '\0') {
+        putchar(x);
+    }
 }
 static uint32_t um_getchar(void)
 {
@@ -715,7 +718,7 @@ static void compile(struct array *arr0)
 
 static int usage(const char *argv0)
 {
-    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n  --dump\n  --verbose\n  --help\n", argv0);
+    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n  --discard-initial-output\n  --dump\n  --verbose\n  --help\n", argv0);
     return 1;
 }
 
@@ -734,6 +737,8 @@ int main(int argc, char *argv[])
                 presupplied_input[len0 + len1] = '\n';
                 presupplied_input[len0 + len1 + 1] = '\0';
             }
+        } else if (strcmp(argv[i], "--discard-initial-output") == 0) {
+            discard_initial_output = true;
         } else if (strcmp(argv[i], "--dump") == 0) {
             dump = true;
         } else if (strcmp(argv[i], "--verbose") == 0) {

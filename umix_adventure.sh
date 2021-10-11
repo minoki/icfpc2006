@@ -3,4 +3,4 @@ if [ -x aarch64/run_jit ]; then
 else
     RUN=run
 fi
-${RUN} --input howie --input xyzzy umix.um
+${RUN} --discard-initial-output --input howie --input xyzzy umix.um

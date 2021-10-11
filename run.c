@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,13 +17,14 @@ struct array {
 };
 static int usage(const char *argv0)
 {
-    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n--help\n", argv0);
+    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n  --discard-initial-output\n  --help\n", argv0);
     return 1;
 }
 int main(int argc, char *argv[])
 {
     const char *filename = NULL;
     char *presupplied_input = NULL;
+    bool discard_initial_output = false;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--input") == 0) {
             if (i + 1 < argc) {
@@ -34,6 +36,8 @@ int main(int argc, char *argv[])
                 presupplied_input[len0 + len1] = '\n';
                 presupplied_input[len0 + len1 + 1] = '\0';
             }
+        } else if (strcmp(argv[i], "--discard-initial-output") == 0) {
+            discard_initial_output = true;
         } else if (strcmp(argv[i], "--help") == 0) {
             return usage(argv[0]);
         } else {
@@ -76,7 +80,7 @@ int main(int argc, char *argv[])
         }
         free(rawprogram);
     }
-    fprintf(stderr, "Loaded program. size=%zu bytes\n", rawprogsize);
+    fprintf(stderr, "<<<Loaded program. size=%zu bytes>>>\n", rawprogsize);
     size_t pc = 0;
     uint32_t reg[8] = {0};
     struct array **arr = calloc(1, sizeof(struct array *));
@@ -160,7 +164,7 @@ int main(int argc, char *argv[])
             }
         case 7: /* Halt */
             fflush(stdout);
-            fprintf(stderr, "HALT\n");
+            fprintf(stderr, "<<<HALT>>>\n");
             return 0;
         case 8: /* Allocation */
             {
@@ -207,7 +211,9 @@ int main(int argc, char *argv[])
             {
                 uint32_t c = op & 7;
                 assert(reg[c] <= 255);
-                putchar(reg[c]);
+                if (!discard_initial_output || presupplied_input == NULL || *presupplied_input == '\0') {
+                    putchar(reg[c]);
+                }
                 break;
             }
         case 11: /* Input */
@@ -255,7 +261,8 @@ int main(int argc, char *argv[])
                 break;
             }
         default:
-            fprintf(stderr, "Invalid Instruction: %08X\n", op);
+            fflush(stdout);
+            fprintf(stderr, "<<<Invalid Instruction: %08X>>>\n", op);
             abort();
         }
     }

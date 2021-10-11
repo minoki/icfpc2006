@@ -3,4 +3,4 @@ if [ -x aarch64/run_jit ]; then
 else
     RUN=run
 fi
-${RUN} --input gardener --input mathemantica umix.um
+${RUN} --discard-initial-output --input gardener --input mathemantica umix.um

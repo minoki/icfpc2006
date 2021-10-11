@@ -3,4 +3,4 @@ if [ -x aarch64/run_jit ]; then
 else
     RUN=run
 fi
-${RUN} --input ohmega --input bidirectional umix.um
+${RUN} --discard-initial-output --input ohmega --input bidirectional umix.um

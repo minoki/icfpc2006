@@ -3,4 +3,4 @@ if [ -x aarch64/run_jit ]; then
 else
     RUN=run
 fi
-${RUN} --input ftd --input falderal90 umix.um
+${RUN} --discard-initial-output --input ftd --input falderal90 umix.um
