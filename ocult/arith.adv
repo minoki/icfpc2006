@@ -1,0 +1,75 @@
+rm arith2.adv
+/bin/umodem arith2.adv STOP
+Add Z y => y;
+Add (S x) y => S (Add x y);
+Add (Add x y) z => Add x (Add y z);
+Add (Mult x y) z => MultAdd x y z;
+Add (MultAdd x y z) w => MultAdd x y (Add z w);
+{-
+Mult Z y => Z;
+Mult (S x) y => Add y (Mult x y);
+Mult (Add x y) z => Add (Mult x z) (Mult y z);
+Mult (Mult x y) z => Mult x (Mult y z);
+-}
+Mult x y => MultAdd x y Z;
+{- MultAdd x y z := x * y + z -}
+MultAdd Z y z => z;
+MultAdd (S x) y z => MultAdd x y (Add y z);
+MultAdd (Add x y) z w => MultAdd x z (MultAdd y z w);
+MultAdd (Mult x y) z w => MultAdd x (Mult y z) w;
+MultAdd (MultAdd x y z) w u => MultAdd x (Mult y w) (MultAdd z w u); {- (x * y + z) * w + u => x * y * w + (z * w + u) -}
+Compute x => x;
+.
+STOP
+advise run arith2.adv arith.tests
+advise arith arith2.adv
+---
+rm arith2.adv
+/bin/umodem arith2.adv STOP
+Add Z y => y;
+Add (S x) y => S (Add x y);
+Add (Add x y) z => Add x (Add y z);
+Add (Mult x y) z => MultAdd x y z;
+Add (MultAdd x y z) w => MultAdd x y (Add z w);
+{-
+Mult Z y => Z;
+Mult (S x) y => Add y (Mult x y);
+Mult (Add x y) z => Add (Mult x z) (Mult y z);
+Mult (Mult x y) z => Mult x (Mult y z);
+-}
+Mult x y => MultAdd x y Z;
+{- MultAdd x y z := x * y + z -}
+MultAdd Z y z => z;
+MultAdd (S x) y z => MultAdd x y (Add y z);
+MultAdd (Add x y) z w => MultAdd x z (MultAdd y z w);
+MultAdd (Mult x y) z w => MultAdd x (MultAdd y z Z) w;
+MultAdd (MultAdd x y z) w u => MultAdd x (MultAdd y w Z) (MultAdd z w u); {- (x * y + z) * w + u => x * y * w + (z * w + u) -}
+Compute x => x;
+.
+STOP
+advise arith arith2.adv
+---
+rm arith2.adv
+/bin/umodem arith2.adv STOP
+Add Z y => y;
+Add (S x) y => S (Add x y);
+Add (Add x y) z => Add x (Add y z);
+Add (Mult x y) z => MultAdd z x y;
+Add (MultAdd z x y) w => MultAdd (Add z w) x y;
+{-
+Mult Z y => Z;
+Mult (S x) y => Add y (Mult x y);
+Mult (Add x y) z => Add (Mult x z) (Mult y z);
+Mult (Mult x y) z => Mult x (Mult y z);
+-}
+Mult x y => MultAdd Z x y;
+{- MultAdd z x y := x * y + z -}
+MultAdd z Z y => z;
+MultAdd z (S x) y => MultAdd (Add y z) x y;
+MultAdd w (Add x y) z => MultAdd (MultAdd w y z) x z;
+MultAdd w (Mult x y) z => MultAdd w x (Mult y z);
+MultAdd u (MultAdd z x y) w => MultAdd (MultAdd u z w) x (Mult y w); {- (x * y + z) * w + u => x * y * w + (z * w + u) -}
+Compute x => x;
+.
+STOP
+advise arith arith2.adv
