@@ -66,6 +66,8 @@ program area=1144
 CIRCS.MUL=38@999999|7cb4c8162149392879a630a786ae06c
 program area=1118 / program area=1075 / program area=1032
 CIRCS.MUL=39@999999|ffebabe2bf5faf8dceea4febef0b770
+program area=989
+CIRCS.MUL=40@999999|289890be61debf464510feeccfec3ed
 
 2d / rev / program area=1375
 CIRCS.REV=36@999999|9c3f05d40ea8a65466b6437b2868c23
@@ -73,8 +75,10 @@ program area=1242
 CIRCS.REV=38@999999|c37986b6113c69e04e8b5f442acc9b7
 program area=1058 / program area=1022
 CIRCS.REV=41@999999|39bb85f3496d80a4d30564d1e44adff
-program area=1008 / program size=994
+program area=1008 / program area=994 / program area=962 / program area=949
 CIRCS.REV=42@999999|20a9d7fb64474d3f8ac180e3723172a
+program area=936
+CIRCS.REV=43@999999|30b7619fe54262d29085457ed1b9c31
 
 O'Cult / arith
 ADVIS.ARH=160@999999|7f7dd9e30730e46abc332612a6442fc
