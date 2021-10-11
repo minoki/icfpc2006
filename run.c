@@ -14,16 +14,39 @@ struct array {
     uint32_t length;
     uint32_t data[];
 };
+static int usage(const char *argv0)
+{
+    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n--help\n", argv0);
+    return 1;
+}
 int main(int argc, char *argv[])
 {
-    if (argc <= 1) {
-        fprintf(stderr, "Usage: %s file.um\n", argv[0]);
-        return 1;
+    const char *filename = NULL;
+    char *presupplied_input = NULL;
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--input") == 0) {
+            if (i + 1 < argc) {
+                ++i;
+                size_t len0 = presupplied_input == NULL ? 0 : strlen(presupplied_input);
+                size_t len1 = strlen(argv[i]);
+                presupplied_input = realloc(presupplied_input, len0 + len1 + 2);
+                memcpy(presupplied_input + len0, argv[i], len1);
+                presupplied_input[len0 + len1] = '\n';
+                presupplied_input[len0 + len1 + 1] = '\0';
+            }
+        } else if (strcmp(argv[i], "--help") == 0) {
+            return usage(argv[0]);
+        } else {
+            filename = argv[i];
+        }
+    }
+    if (filename == NULL) {
+        return usage(argv[0]);
     }
     void *rawprogram = NULL;
     size_t rawprogsize = 0;
     {
-        FILE *f = fopen(argv[1], "rb");
+        FILE *f = fopen(filename, "rb");
         assert(f != NULL);
         int seekresult = fseek(f, 0, SEEK_END);
         assert(seekresult == 0);
@@ -190,8 +213,13 @@ int main(int argc, char *argv[])
         case 11: /* Input */
             {
                 uint32_t c = op & 7;
-                fflush(stdout);
-                int ch = getchar();
+                int ch;
+                if (presupplied_input == NULL || *presupplied_input == '\0') {
+                    fflush(stdout);
+                    ch = getchar();
+                } else {
+                    ch = *presupplied_input++;
+                }
                 if (ch == EOF) {
                     reg[c] = (uint32_t)(-1);
                 } else {

@@ -29,6 +29,7 @@ static size_t program_mem_capacity;
 static uint32_t *L_epilogue;
 static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
 static bool verbose = false;
+static char *presupplied_input = NULL;
 
 static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
 {
@@ -116,8 +117,13 @@ static void um_putchar(uint32_t x)
 }
 static uint32_t um_getchar(void)
 {
-    fflush(stdout);
-    int ch = getchar();
+    int ch;
+    if (presupplied_input == NULL || *presupplied_input == '\0') {
+        fflush(stdout);
+        ch = getchar();
+    } else {
+        ch = *presupplied_input++;
+    }
     if (ch == EOF) {
         return (uint32_t)(-1);
     } else {
@@ -709,7 +715,7 @@ static void compile(struct array *arr0)
 
 static int usage(const char *argv0)
 {
-    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --dump\n  --verbose\n  --help\n", argv0);
+    fprintf(stderr, "Usage: %s file.um\nOptions:\n  --input [text]\n  --dump\n  --verbose\n  --help\n", argv0);
     return 1;
 }
 
@@ -717,21 +723,29 @@ int main(int argc, char *argv[])
 {
     bool dump = false;
     const char *filename = NULL;
-    {
-        for (int i = 1; i < argc; ++i) {
-            if (strcmp(argv[i], "--dump") == 0) {
-                dump = true;
-            } else if (strcmp(argv[i], "--verbose") == 0) {
-                verbose = true;
-            } else if (strcmp(argv[i], "--help") == 0) {
-                return usage(argv[0]);
-            } else {
-                filename = argv[i];
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--input") == 0) {
+            if (i + 1 < argc) {
+                ++i;
+                size_t len0 = presupplied_input == NULL ? 0 : strlen(presupplied_input);
+                size_t len1 = strlen(argv[i]);
+                presupplied_input = realloc(presupplied_input, len0 + len1 + 2);
+                memcpy(presupplied_input + len0, argv[i], len1);
+                presupplied_input[len0 + len1] = '\n';
+                presupplied_input[len0 + len1 + 1] = '\0';
             }
-        }
-        if (filename == NULL) {
+        } else if (strcmp(argv[i], "--dump") == 0) {
+            dump = true;
+        } else if (strcmp(argv[i], "--verbose") == 0) {
+            verbose = true;
+        } else if (strcmp(argv[i], "--help") == 0) {
             return usage(argv[0]);
+        } else {
+            filename = argv[i];
         }
+    }
+    if (filename == NULL) {
+        return usage(argv[0]);
     }
     void *rawprogram = NULL;
     size_t rawprogsize = 0;
