@@ -1,0 +1,15 @@
+rm puzzle1sol.ant
+/bin/umodem puzzle1sol.ant STOP
+Puzzle 1: Simple
+NNNNNNN
+NEEWEEE
+8 8
+ - - - - - - - -
+ -0>0< - - - - -
+ - - - - - # - -
+ - - - - - - - -
+ - - - - - - $ -
+ - - - -0v - - -
+ -1^ - -0^ - - -
+ - - - - - - - -
+STOP
