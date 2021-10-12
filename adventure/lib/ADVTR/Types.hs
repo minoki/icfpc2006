@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module ADVTR.Types where
+import qualified Data.List       as List
 import qualified Data.Text.Short as T
 import           MultiSet
 
@@ -14,6 +15,10 @@ depth (Broken _ baseItem) = 1 + depth baseItem
 itemNameOfCondition :: Condition -> T.ShortText
 itemNameOfCondition (Pristine name)     = name
 itemNameOfCondition (Broken _ baseItem) = itemNameOfCondition baseItem
+
+conditionToString :: Condition -> String
+conditionToString (Pristine name) = T.unpack name
+conditionToString (Broken missings base) = conditionToString base ++ " missing {" ++ List.concat (List.intersperse ", " $ map (\(cond,n) -> show n ++ " " ++ conditionToString cond) (MultiSet.toMultiplicityList missings)) ++ "}"
 
 data Item = Item { name       :: !T.ShortText
                  , adjectives :: !(Maybe T.ShortText)

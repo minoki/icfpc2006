@@ -56,3 +56,9 @@ deleteOne x (MultiSet m) = MultiSet (Map.update (\n -> if n > 1 then Just $! (n 
 
 takeOne :: Ord a => MultiSet a -> [(a,MultiSet a)]
 takeOne (MultiSet m) = [(x,deleteOne x (MultiSet m)) | x <- Map.keys m]
+
+toMap :: MultiSet a -> Map.Map a Int
+toMap (MultiSet m) = m
+
+toMultiplicityList :: MultiSet a -> [(a,Int)]
+toMultiplicityList (MultiSet m) = Map.toAscList m
