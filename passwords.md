@@ -8,6 +8,7 @@
 | howie | Howard Curry | xyzzy | Adventure | BASIC, BLACK |
 | hmonk | Harmonious Monk | COMEFROM | ADVISE (O'Cult) | ftd, ADVTR |
 | bbarker | Betty ? | plinko | Black Knots | gardener, CIRCS |
+<!-- | assistant-root | | h1dd3n | | | -->
 
 ADVTR's /etc/passwd:
 
