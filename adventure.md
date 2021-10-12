@@ -71,7 +71,7 @@ use keypad
     * [ ] status LED
     * [ ] RS232 adapter
     * [x] EPROM burner (required space: 3)
-    * [ ] battery
+    * [x] battery (required space: 6)
 
 ## USB cable
 
@@ -649,4 +649,96 @@ combine display with chestnut B-1623-YTC
 combine display with burgundy R-4292-FRL
 combine display with magenta L-9247-EHW
 combine display with fern-green N-1623-AOE
+```
+
+## battery
+
+Required space: 6
+
+```
+take battery
+take buff F-6678-DYP
+take olive-green R-4292-FWH
+incinerate olive-green R-4292-FWH
+take green D-4832-HUX
+incinerate green D-4832-HUX
+take prussian-blue P-1623-WEU
+take black X-9887-GKK
+incinerate black X-9887-GKK
+take reciprocating H-9887-MUQ
+combine battery with reciprocating H-9887-MUQ
+take bright-violet T-4292-BHD
+combine prussian-blue P-1623-WEU with bright-violet T-4292-BHD
+take flax D-4292-HRJ
+incinerate flax D-4292-HRJ
+take yellow Z-1623-COC
+combine yellow Z-1623-COC with prussian-blue P-1623-WEU
+take goldenrod X-0010-TVP
+incinerate goldenrod X-0010-TVP
+take forest-green F-6678-DYP
+incinerate forest-green F-6678-DYP
+take sky-blue N-1623-ATY
+incinerate sky-blue N-1623-ATY
+take rotating H-6678-ZJL
+incinerate rotating H-6678-ZJL
+take sienna T-6678-BEN
+incinerate sienna T-6678-BEN
+take heliotrope D-5065-UGE
+incinerate heliotrope D-5065-UGE
+take sea-green N-1623-ATY
+incinerate sea-green N-1623-ATY
+take ochre D-4292-HRJ
+incinerate ochre D-4292-HRJ
+take cream Z-1623-COC
+incinerate cream Z-1623-COC
+take powder-blue T-6678-BEN
+incinerate powder-blue T-6678-BEN
+take gold N-4832-NFF
+take burnt-umber V-0010-XLT
+take bronze J-9247-ICW
+incinerate bronze J-9247-ICW
+take selective-yellow N-4832-NFF
+incinerate selective-yellow N-4832-NFF
+take peach-puff F-6678-DYP
+incinerate peach-puff F-6678-DYP
+take bright-violet N-4832-NFF
+incinerate bright-violet N-4832-NFF
+take moccasin N-4832-NFF
+incinerate moccasin N-4832-NFF
+take royal-blue J-9247-ICW
+combine yellow Z-1623-COC with royal-blue J-9247-ICW
+take pale-mauve R-4292-FWH
+incinerate pale-mauve R-4292-FWH
+take lavender-blush N-6458-NIT
+incinerate lavender-blush N-6458-NIT
+take mint-green J-9887-IFM
+incinerate mint-green J-9887-IFM
+take olive-drab N-1623-ATY
+incinerate olive-drab N-1623-ATY
+take violet F-4292-DCF
+incinerate violet F-4292-DCF
+take gray30 X-9247-GHU
+incinerate gray30 X-9247-GHU
+take pale-blue V-9887-KAO
+incinerate pale-blue V-9887-KAO
+take steel-blue N-4832-NFF
+incinerate steel-blue N-4832-NFF
+take pale-magenta N-1623-ATY
+incinerate pale-magenta N-1623-ATY
+take pale-cornflower-blue X-9247-GHU
+incinerate pale-cornflower-blue X-9247-GHU
+take low-carb N-4832-NFF
+incinerate low-carb N-4832-NFF
+take peach-orange P-5065-WBG
+incinerate peach-orange P-5065-WBG
+take green L-6458-RXX
+incinerate green L-6458-RXX
+take eggplant Z-1623-COC
+combine battery with eggplant Z-1623-COC
+combine yellow Z-1623-COC with burnt-umber V-0010-XLT
+combine battery with yellow Z-1623-COC
+take camouflage-green J-9247-ICW
+combine battery with camouflage-green J-9247-ICW
+combine battery with buff F-6678-DYP
+combine battery with gold N-4832-NFF
 ```
