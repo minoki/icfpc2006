@@ -69,7 +69,7 @@ use keypad
 * [ ] uploader
     * [ ] MOSFET
     * [ ] status LED
-    * [ ] RS232 adapter
+    * [x] RS232 adapter (required space: 6)
     * [x] EPROM burner (required space: 3)
     * [x] battery (required space: 6)
 
@@ -741,4 +741,86 @@ take camouflage-green J-9247-ICW
 combine battery with camouflage-green J-9247-ICW
 combine battery with buff F-6678-DYP
 combine battery with gold N-4832-NFF
+```
+
+## RS232 adapter
+
+Required space: 6
+
+```
+take gray60 Z-4292-PRV
+take pale-carmine D-9887-UUE
+incinerate pale-carmine D-9887-UUE
+take pale-cornflower-blue D-9887-UUE
+take imported D-9887-UUE
+incinerate imported D-9887-UUE
+take gray90 Z-4292-PRV
+take sepia Z-4292-PRV
+combine gray60 Z-4292-PRV with sepia Z-4292-PRV
+take gray30 D-9887-UUE
+combine gray30 D-9887-UUE with pale-cornflower-blue D-9887-UUE
+take robin-egg-blue Z-4292-PRV
+combine gray90 Z-4292-PRV with robin-egg-blue Z-4292-PRV
+take slate-blue D-9887-UUE
+incinerate slate-blue D-9887-UUE
+take rosy-brown D-9887-UUE
+incinerate rosy-brown D-9887-UUE
+take gray50 Z-4292-PRV
+take misty-rose Z-4292-PRV
+incinerate misty-rose Z-4292-PRV
+take cinnamon Z-9887-CUG
+incinerate cinnamon Z-9887-CUG
+take saffron N-9247-AWO
+incinerate saffron N-9247-AWO
+take indigo V-4292-XRX
+incinerate indigo V-4292-XRX
+take pale-sandy-brown R-4832-FAV
+incinerate pale-sandy-brown R-4832-FAV
+take momemtum-preserving Z-0010-PGL
+incinerate momemtum-preserving Z-0010-PGL
+take swamp-green V-4292-XRX
+incinerate swamp-green V-4292-XRX
+take pale-pink R-1623-SOQ
+incinerate pale-pink R-1623-SOQ
+take cream R-1623-SOQ
+incinerate cream R-1623-SOQ
+take royal-blue B-9247-YCM
+incinerate royal-blue B-9247-YCM
+take burgundy J-1403-IIC
+incinerate burgundy J-1403-IIC
+take blue Z-0010-PGL
+incinerate blue Z-0010-PGL
+take pink Z-0010-PGL
+incinerate pink Z-0010-PGL
+take moss-green F-4832-DFT
+incinerate moss-green F-4832-DFT
+take pine-green B-9247-YCM
+incinerate pine-green B-9247-YCM
+take floating R-4832-FAV
+incinerate floating R-4832-FAV
+take russet R-4832-FAV
+incinerate russet R-4832-FAV
+take lavender-blush D-9887-UUE
+incinerate lavender-blush D-9887-UUE
+take old-gold N-9247-AWO
+incinerate old-gold N-9247-AWO
+take pear N-9247-AWO
+incinerate pear N-9247-AWO
+take pastel-pink D-9887-UUE
+incinerate pastel-pink D-9887-UUE
+take heliotrope D-9887-UUE
+incinerate heliotrope D-9887-UUE
+take persian-blue Z-4292-PRV
+incinerate persian-blue Z-4292-PRV
+take emerald Z-4292-PRV
+incinerate emerald Z-4292-PRV
+take violet-red Z-4292-PRV
+take blaze-orange Z-4292-PRV
+incinerate blaze-orange Z-4292-PRV
+take RS232 adapter
+combine RS232 adapter with gray30 D-9887-UUE
+combine RS232 adapter with violet-red Z-4292-PRV
+combine RS232 adapter with gray90 Z-4292-PRV
+combine RS232 adapter with gray60 Z-4292-PRV
+combine RS232 adapter with gray50 Z-4292-PRV
 ```
