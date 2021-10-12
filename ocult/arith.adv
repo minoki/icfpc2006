@@ -73,3 +73,24 @@ Compute x => x;
 .
 STOP
 advise arith arith2.adv
+---
+rm arith2.adv
+/bin/umodem arith2.adv STOP
+Do Z => Done Z;
+Do (S x) => S (Do x);
+Do (Add x y) => Add x (Do y);
+Do (Mult x y) => Mult x (Do y);
+S (Done x) => Done (S x);
+Add x (Done y) => Add (Do x) y;
+Mult x (Done y) => Mult (Do x) y;
+Add (Done Z) y => Do y;
+Add (Done (S x)) y => S (Do (Add x y));
+Mult (Done Z) y => Done Z;
+Mult (Done (S x)) y => Do (Add y (Mult x y));
+Compute x => Get (Do x);
+Get (Done x) => x;
+.
+STOP
+advise run arith2.adv arith.tests
+advise arith arith2.adv
+score=163

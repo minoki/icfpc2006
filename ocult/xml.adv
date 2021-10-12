@@ -1,0 +1,133 @@
+rm xml.adv
+/bin/umodem xml.adv STOP
+{-
+quality ::= Bold | Emph | Maj
+doc ::= A | B | Seq doc doc | Tag quality doc
+-}
+Seq (Seq d1 d2) d3 => Seq d1 (Seq d2 d3);
+Seq (Tag q d1) (Tag q d2) => Tag q (Seq d1 d2);
+{- Tag q (Tag q d) => Tag q d; -}
+Tag Maj (Tag Maj d) => Tag Maj d;
+Tag Emph (Tag Emph d) => Tag Emph d;
+Tag Bold (Tag Bold d) => Tag Bold d;
+Tag Maj (Tag Emph d) => Tag Emph (Tag Maj d);
+Tag Maj (Tag Bold d) => Tag Bold (Tag Maj d);
+Tag Emph (Tag Bold d) => Tag Bold (Tag Emph d);
+SNF x => x;
+.
+STOP
+advise xml xml.adv
+---
+rm xml.adv
+/bin/umodem xml.adv STOP
+{-
+quality ::= Bold | Emph | Maj
+doc ::= A | B | Seq doc doc | Tag quality doc
+-}
+SNF (Seq A d2) => SeqN A (SNF d2);
+SNF (Seq B d2) => SeqN B (SNF d2);
+SNF (Seq (Seq d1 d2) d3) => SeqN d1 (SNF (Seq d2 d3));
+SNF (Seq (Tag q d1) d2) => SeqN (SNF (Tag q d1)) (SNF d2);
+SNF (Tag q A) => TagN q A;
+SNF (Tag q B) => TagN q B;
+SNF (Tag q (Seq d1 d2)) => SeqN (SNF (Tag q d1)) (SNF (Tag q d2));
+SNF (Tag q1 (Tag q2 A)) => TagN q1 (TagN q2 A);
+.
+STOP
+advise xml xml.adv
+---
+rm xml.adv
+/bin/umodem xml.adv STOP
+{-
+quality ::= Bold | Emph | Maj
+doc ::= A | B | Seq doc doc | Tag quality doc
+-}
+Do A => Done A;
+Do B => Done B;
+Do (Seq d1 d2) => Seq (Do d1) d2;
+Do (Tag q d) => Tag q (Do d);
+Seq (Done A) d2 => Seq A (Do d2);
+Seq (Done B) d2 => Seq B (Do d2);
+Seq (Done (Seq d1 d2)) d3 => Seq d1 (Do (Seq d2 d3));
+Seq (Done (Tag q d1)) d2 => Seq (Tag q d1) (Do d2);
+Tag Maj (Done (Tag Maj d)) => Done (Tag Maj d);
+Tag Emph (Done (Tag Emph d)) => Done (Tag Emph d);
+Tag Bold (Done (Tag Bold d)) => Done (Tag Bold d);
+Tag Maj (Done (Tag Emph d)) => Done (Tag Emph (Tag Maj d));
+Tag Maj (Done (Tag Bold d)) => Done (Tag Bold (Tag Maj d));
+Tag Emph (Done (Tag Bold d)) => Done (Tag Bold (Tag Emph d));
+Tag q (Done d) => Done (Tag q d);
+Seq d1 (Done d2) => Done (Seq d1 d2);
+SNF x => Get (Do x);
+Get (Done x) => x;
+.
+STOP
+advise xml xml.adv
+
+Initial Term:    SNF (Seq (Tag Emph (Tag Bold (Seq (Tag Maj (Tag Maj B)) (Tag Emph (Tag Emph A))))) (Seq (Seq (Seq (Seq (Seq B A) (Tag Emph A)) (Tag Emph (Tag Emph A))) (Tag Maj (Tag Emph (Tag Bold B)))) (Seq (Seq (Tag Bold (Seq B B)) (Tag Bold (Seq A B))) (Tag Bold (Seq (Tag Maj B) (Tag Emph B))))))
+Applying advice...
+Final Term:      (Seq (Tag Bold (Tag Emph (Seq (Tag Maj B) (Tag Emph A)))) (Seq B (Seq A (Seq (Tag Emph A) (Seq (Tag Emph A) (Seq (Tag Bold (Tag Emph (Tag Maj B))) (Seq (Tag Bold (Seq B B)) (Seq (Tag Bold (Seq A B)) (Tag Bold (Seq (Tag Maj B) (Tag Emph B)))))))))))
+Total Steps:     223
+
+INCORRECT!
+Final term is not in short normal form.
+
+(Seq (Tag Bold (Tag Emph (Seq (Tag Maj B) (Tag Emph A)))) (Seq B (Seq A (Seq (Tag Emph A) (Seq (Tag Emph A) (Seq (Tag Bold (Tag Emph (Tag Maj B))) (Seq (Tag Bold (Seq B B)) (Seq (Tag Bold (Seq A B)) (Tag Bold (Seq (Tag Maj B) (Tag Emph B)))))))))))
+
+---
+rm xml.adv
+/bin/umodem xml.adv STOP
+{-
+quality ::= Bold | Emph | Maj
+doc ::= A | B | Seq doc doc | Tag quality doc
+-}
+Do0 A => Done A;
+Do0 B => Done B;
+Do0 (Seq d1 d2) => Seq (Do0 d1) d2;
+Do0 (Tag q d) => Do1 q d;
+Do1 q A => Done (Tag q A);
+Do1 q B => Done (Tag q B);
+Do1 q (Seq d1 d2) => Seq (Do1 q d1) (Tag q d2);
+Do1 q (Tag q d) => Do1 q d;
+Do1 q1 (Tag q2 d) => Do2 q1 q2 d;
+Do2 Emph Bold A => Done (Tag Bold (Tag Emph A));
+Do2 Maj Bold A => Done (Tag Bold (Tag Maj A));
+Do2 Maj Emph A => Done (Tag Emph (Tag Maj A));
+Do2 q1 q2 A => Done (Tag q1 (Tag q2 A));
+Do2 Emph Bold B => Done (Tag Bold (Tag Emph B));
+Do2 Maj Bold B => Done (Tag Bold (Tag Maj B));
+Do2 Maj Emph B => Done (Tag Emph (Tag Maj B));
+Do2 q1 q2 B => Done (Tag q1 (Tag q2 B));
+{-
+Do2 Bold Emph A => Done (Tag Bold (Tag Emph A));
+Do2 Bold Maj A => Done (Tag Bold (Tag Maj A));
+Do2 Emph Maj A => Done (Tag Emph (Tag Maj A));
+-}
+Do2 q1 q2 (Seq d1 d2) => Seq (Do2 q1 q2 d1) (Tag q1 (Tag q2 d2));
+Do2 q1 q2 (Tag q1 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q2 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q3 d) => Do3 d;
+Do3 A => Done (Tag Bold (Tag Emph (Tag Maj A)));
+Do3 B => Done (Tag Bold (Tag Emph (Tag Maj B)));
+Do3 (Seq d1 d2) => Seq (Do3 d1) (Tag Bold (Tag Emph (Tag Maj d2)));
+Do3 (Tag q d) => Do3 d;
+Seq (Done A) d2 => Seq A (Do0 d2);
+Seq (Done B) d2 => Seq B (Do0 d2);
+Seq (Done (Seq d1 d2)) d3 => Seq d1 (Do0 (Seq d2 d3));
+Seq (Done (Tag q d1)) d2 => Seq (Tag q d1) (Do0 d2);
+Seq d1 (Done d2) => Done (Seq d1 d2);
+Factor A => Factored A;
+Factor B => Factored B;
+Factor (Seq d1 d2) => Seq (Factor d1) d2;
+Factor (Tag q d) => Tag q (Factor d);
+Seq (Factored d1) d2 => Seq d1 (Factor d2);
+Seq (Tag q d1) (Factored (Tag q d2)) => Tag q (Factor (Seq d1 d2));
+Seq d1 (Factored d2) => Factored (Seq d1 d2);
+Tag q (Factored d) => Factored (Tag q d);
+SNF x => Get (Do0 x);
+Get (Done x) => Get (Factor x);
+Get (Factored x) => x;
+.
+STOP
+advise xml xml.adv
+score=109
