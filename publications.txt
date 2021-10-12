@@ -91,3 +91,6 @@ ANTWO.015=10@999999|a83ad4f50686c9eaad6ad0b406e3513
 
 Antomaton / puzzle2
 ANTWO.002=15@999999|87bf3b449a006a9fc5ffeb6a0eca626
+
+Antomaton / puzzle3
+ANTWO.003=30@999999|96bb4cc41239f750e0c7edcf901351d
