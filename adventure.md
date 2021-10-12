@@ -60,8 +60,18 @@ use keypad
                                  +--------------+--------------+---------------+
 ```
 
-* downloader: USB cable, display, jumper shunt, progress bar, power cord
-* uploader: MOSFET, status LED, RS232 adapter, EPROM burner, battery
+* downloader
+    * [x] USB cable
+    * [ ] display
+    * [x] jumper shunt
+    * [x] progress bar
+    * [x] power cord
+* uploader
+    * [ ] MOSFET
+    * [ ] status LED
+    * [ ] RS232 adapter
+    * [x] EPROM burner
+    * [ ] battery
 
 ## USB cable
 
