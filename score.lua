@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 local f = io.open("publications.txt")
 local t = {}
 local highests = {}
