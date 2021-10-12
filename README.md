@@ -32,11 +32,37 @@
 
 ![](CBV.png)
 
-## QVICKBASIC
+## QVICKBASIC (BASIC)
 
 * [hack3.bas](hack3.bas)
     * A program to obtain passwords for `ftd`, `ohmega`, and `howie`.
 
-## ADVENTURE
+## Adventure (ADVTR)
 
-See [adventure.md](adventure.md).
+See [adventure/README.md](adventure/README.md).
+
+## 2D (CIRCS)
+
+* [2d/mult.sml](2d/mult.sml)
+* [2d/reverse.sml](2d/reverse.sml)
+
+## Antomaton (ANTWO)
+
+* [antomaton/puzzle1sol.txt](antomaton/puzzle1sol.txt)
+* [antomaton/puzzle2sol.txt](antomaton/puzzle2sol.txt)
+* [antomaton/puzzle3sol.txt](antomaton/puzzle3sol.txt)
+* [antomaton/puzzle4sol.txt](antomaton/puzzle4sol.txt)
+* [antomaton/puzzle15sol.txt](antomaton/puzzle15sol.txt)
+
+## Balance (BLNCE)
+
+See [balance/README.md](balance/README.md).
+
+## Black Knots (BLACK)
+
+See [blackknot/README.md](blackknot/README.md).
+
+## Advise / O'Cult (ADVIS)
+
+* [ocult/arith.adv](ocult/arith.adv)
+* [ocult/xml.adv](ocult/xml.adv)
