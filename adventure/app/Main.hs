@@ -5,6 +5,7 @@ import           ADVTR.Parser
 import           ADVTR.Types
 import           Control.Applicative
 import           Control.Monad
+import           Control.Monad.RWS.Lazy
 import           Control.Monad.State.Strict
 import           Control.Monad.Trans
 import           Control.Monad.Writer.Strict
@@ -77,7 +78,8 @@ merge [] ys                 = [ys]
 merge xs []                 = [xs]
 merge xs0@(x:xs) ys0@(y:ys) = (x:) <$> merge xs ys0 <|> (y:) <$> merge xs0 ys
 
-type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item], {- keep -} MultiSet.MultiSet Condition) (WriterT [Command] []) a
+-- type ToCommand a = StateT ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item], {- keep -} MultiSet.MultiSet Condition) (WriterT [Command] []) a
+type ToCommand a = RWST Int [Command] ({- max inventory-} Int, {- inventory -} [Item], {- stack -} [Item], {- keep -} MultiSet.MultiSet Condition) [] a
 
 takeItem :: Int -> Condition -> ToCommand Item
 takeItem !limit item = do
@@ -107,7 +109,7 @@ reduce :: Int -> Recipe -> ToCommand (Maybe Recipe)
 reduce !limit (RLeaf item) = do takeItem limit item
                                 pure Nothing
 reduce !limit (RCombine result (RLeaf broken) parts)
-  = do (part,restParts) <- lift $ lift $ takeOneOfList parts
+  = do (part,restParts) <- lift $ takeOneOfList parts
        case part of
          RLeaf part' -> do (broken', part'') <- (do broken' <- takeItem limit broken
                                                     part'' <- takeItem limit part'
@@ -139,7 +141,7 @@ reduce !limit (RCombine result (RLeaf broken) parts)
 reduce !limit (RCombine result broken@(RCombine {}) parts)
   = (do Just broken' <- reduce limit broken
         pure $ Just $ RCombine result broken' parts
-    ) <|> (do (part,restParts) <- lift $ lift $ takeOneOfList parts
+    ) <|> (do (part,restParts) <- lift $ takeOneOfList parts
               case part of
                 RLeaf {} -> empty
                 RCombine {} -> do part' <- reduce limit part
@@ -208,7 +210,7 @@ solveGreedy !limit item (RCombine result broken parts) = (do r <- solveGreedy li
                                                              pure $ RCombine result r parts
                                                          )
                                                          <|>
-                                                         (do (part,restParts) <- lift $ lift $ takeOneOfList parts
+                                                         (do (part,restParts) <- lift $ takeOneOfList parts
                                                              part' <- solveGreedy limit item part
                                                              pure $ RCombine result broken (part':restParts)
                                                          )
@@ -245,7 +247,8 @@ main = do args <- getArgs
                                   let recipes :: [Recipe]
                                       recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
                                   putStrLn $ "# of recipes: " ++ show (length recipes)
-                                  let go !limit | limit > 6 = putStrLn "Suitable solution not found"
+                                  let initial_limit = 2
+                                      go !limit | limit > 6 = putStrLn "Suitable solution not found"
                                                 | otherwise = do
                                                     {-
                                                     let n = length $ do recipe <- recipes
@@ -256,17 +259,21 @@ main = do args <- getArgs
                                                     let result :: [((Int,[Item],[Item],MultiSet.MultiSet Condition),[Command])]
                                                         result = do recipe <- recipes
                                                                     let keep = MultiSet.fromList $ recipeDependencies recipe
-                                                                    runWriterT (execStateT (solve limit recipe) (0,[],items,keep))
+                                                                    execRWST (solve limit recipe) 0 (0,[],items,keep)
+                                                                    -- runWriterT (execStateT (solve limit recipe) (0,[],items,keep))
                                                                     -- runWriterT (execStateT (greedy limit recipe) (0,[],items,keep))
                                                     if null result then do
                                                       putStrLn $ "Could not be done with space=" ++ show limit
                                                       go (limit + 1)
                                                     else do
-                                                      let min_inventory = minimum $ map (\((m,_,_,_),_) -> m) result
-                                                      putStrLn $ "required space: " ++ show min_inventory
+                                                      let min_inventory = if limit == initial_limit then
+                                                                            minimum $ map (\((m,_,_,_),_) -> m) result
+                                                                          else
+                                                                            limit
+                                                      putStrLn $ "Required space: " ++ show min_inventory
                                                       putStrLn "---"
                                                       let result0 = head $ filter (\((m,_,_,_),_) -> m == min_inventory) result
                                                       forM_ (snd result0) $ \command -> do
                                                         putStrLn (commandToString command)
-                                  go 4
+                                  go initial_limit
             [] -> putStrLn "Usage: adventure [filename] [target]"

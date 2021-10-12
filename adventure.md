@@ -60,17 +60,17 @@ use keypad
                                  +--------------+--------------+---------------+
 ```
 
-* downloader
-    * [x] USB cable
-    * [ ] display
-    * [x] jumper shunt
-    * [x] progress bar
-    * [x] power cord
-* uploader
+* [x] downloader
+    * [x] USB cable (required space: 4)
+    * [x] display (required space: 5)
+    * [x] jumper shunt (required space: 3)
+    * [x] progress bar (required space: 1)
+    * [x] power cord (required space: 4)
+* [ ] uploader
     * [ ] MOSFET
     * [ ] status LED
     * [ ] RS232 adapter
-    * [x] EPROM burner
+    * [x] EPROM burner (required space: 3)
     * [ ] battery
 
 ## USB cable
@@ -563,4 +563,90 @@ combine power cord with bisque V-1623-KEM
 combine power cord with pine-green H-6458-ZNJ
 take purple Z-4292-PHT
 combine power cord with purple Z-4292-PHT
+```
+
+## display
+
+Required space: 5
+
+```
+take fern-green N-1623-AOE
+take burgundy R-4292-FRL
+take pale-magenta F-6458-DDN
+incinerate pale-magenta F-6458-DDN
+take peach-yellow H-1623-MYO
+incinerate peach-yellow H-1623-MYO
+take rotating H-4292-ZHF
+incinerate rotating H-4292-ZHF
+take low-carb R-6458-FXP
+incinerate low-carb R-6458-FXP
+take mysterious T-6458-BIL
+incinerate mysterious T-6458-BIL
+take brass R-9247-SMK
+take puce Z-1403-CSY
+incinerate puce Z-1403-CSY
+take pink N-6678-NJD
+combine pink N-6678-NJD with brass R-9247-SMK
+take jade X-4292-TWX
+combine jade X-4292-TWX with pink N-6678-NJD
+take flax Z-6678-PEF
+combine flax Z-6678-PEF with jade X-4292-TWX
+take pale-blue H-4832-ZKT
+take gray60 P-0010-JQJ
+incinerate gray60 P-0010-JQJ
+take olive-green J-1403-IDG
+combine olive-green J-1403-IDG with pale-blue H-4832-ZKT
+take swamp-green D-9247-UHM
+incinerate swamp-green D-9247-UHM
+take khaki N-6458-NDX
+combine khaki N-6458-NDX with olive-green J-1403-IDG
+combine khaki N-6458-NDX with flax Z-6678-PEF
+take red-violet V-9887-KUS
+incinerate red-violet V-9887-KUS
+take tea-green N-0010-NGN
+combine tea-green N-0010-NGN with khaki N-6458-NDX
+take cinnamon X-1403-GIE
+incinerate cinnamon X-1403-GIE
+take gray20 T-4832-BFV
+incinerate gray20 T-4832-BFV
+take beige D-6458-HSR
+take ghost-white F-4832-DAX
+combine ghost-white F-4832-DAX with tea-green N-0010-NGN
+combine ghost-white F-4832-DAX with beige D-6458-HSR
+take olive-green V-4292-XMD
+combine ghost-white F-4832-DAX with olive-green V-4292-XMD
+take light-brown H-4292-ZHF
+incinerate light-brown H-4292-ZHF
+take lawn-green X-6678-TTJ
+combine lawn-green X-6678-TTJ with ghost-white F-4832-DAX
+take aquamarine T-4292-BCH
+combine aquamarine T-4292-BCH with lawn-green X-6678-TTJ
+take maroon P-6458-JNT
+incinerate maroon P-6458-JNT
+take rust Z-0010-PBP
+incinerate rust Z-0010-PBP
+take cyan F-5065-QLE
+incinerate cyan F-5065-QLE
+take lavender-blush V-9887-KUS
+incinerate lavender-blush V-9887-KUS
+take olive-drab B-6458-LIV
+incinerate olive-drab B-6458-LIV
+take plum D-5065-UBI
+combine plum D-5065-UBI with aquamarine T-4292-BCH
+take magenta L-9247-EHW
+combine magenta L-9247-EHW with plum D-5065-UBI
+take ochre P-1623-WYY
+combine magenta L-9247-EHW with ochre P-1623-WYY
+take gray60 D-4832-HPD
+incinerate gray60 D-4832-HPD
+take chestnut B-1623-YTC
+take rust Z-6458-PXZ
+incinerate rust Z-6458-PXZ
+take robin-egg-blue Z-6458-PXZ
+combine chestnut B-1623-YTC with robin-egg-blue Z-6458-PXZ
+take display
+combine display with chestnut B-1623-YTC
+combine display with burgundy R-4292-FRL
+combine display with magenta L-9247-EHW
+combine display with fern-green N-1623-AOE
 ```
