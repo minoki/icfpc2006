@@ -1,0 +1,19 @@
+rm puzzle5sol.ant
+/bin/umodem puzzle5sol.ant STOP
+Puzzle 5: Basketball
+ENNNNWN
+WNNNNEN
+9 11
+ o o o o o o o o o
+ o - - - - - - - o
+ o - - # $ # - - o
+ o - - - # - - - o
+ o - - - - - - - o
+ o - - - - - - - o
+ o - - - - - - - o
+ o - - - - - - - o
+ o0> - - - -1< - o
+ o1> - - - -0< - o
+ o o o o o o o o o
+STOP
+antomaton -i puzzle5sol.ant
