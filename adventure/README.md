@@ -67,7 +67,7 @@ use keypad
     * [x] progress bar (required space: 1)
     * [x] power cord (required space: 4)
 * [ ] uploader
-    * [ ] MOSFET
+    * [x] MOSFET (required space: 5)
     * [ ] status LED
     * [x] RS232 adapter (required space: 6)
     * [x] EPROM burner (required space: 3)
@@ -823,4 +823,74 @@ combine RS232 adapter with violet-red Z-4292-PRV
 combine RS232 adapter with gray90 Z-4292-PRV
 combine RS232 adapter with gray60 Z-4292-PRV
 combine RS232 adapter with gray50 Z-4292-PRV
+```
+
+## MOSFET
+
+Required space: 5
+
+```
+take tea-green T-9887-OKW
+take chartreuse N-5065-ALO
+take dim-gray X-6458-TNF
+take scarlet J-9247-IWC
+combine scarlet J-9247-IWC with dim-gray X-6458-TNF
+combine chartreuse N-5065-ALO with scarlet J-9247-IWC
+take mustard D-4292-HMN
+take turquoise N-4832-NAJ
+take turquoise F-6678-DTT
+combine chartreuse N-5065-ALO with turquoise F-6678-DTT
+combine mustard D-4292-HMN with tea-green T-9887-OKW
+combine chartreuse N-5065-ALO with mustard D-4292-HMN
+take celadon T-9887-OKW
+incinerate celadon T-9887-OKW
+take burnt-orange T-9887-OKW
+take cadet-blue T-9887-OKW
+take pastel-green F-6678-DTT
+combine chartreuse N-5065-ALO with pastel-green F-6678-DTT
+combine chartreuse N-5065-ALO with cadet-blue T-9887-OKW
+combine chartreuse N-5065-ALO with burnt-orange T-9887-OKW
+combine chartreuse N-5065-ALO with turquoise N-4832-NAJ
+take prussian-blue X-6458-TNF
+incinerate prussian-blue X-6458-TNF
+take magenta X-6458-TNF
+incinerate magenta X-6458-TNF
+take safety-orange F-6678-DTT
+incinerate safety-orange F-6678-DTT
+take imported B-5065-YQM
+incinerate imported B-5065-YQM
+take puce X-6458-TNF
+incinerate puce X-6458-TNF
+take water-logged F-6678-DTT
+incinerate water-logged F-6678-DTT
+take thistle-colored X-6458-TNF
+incinerate thistle-colored X-6458-TNF
+take gamboge T-9887-OKW
+combine chartreuse N-5065-ALO with gamboge T-9887-OKW
+take sky-blue T-9887-OKW
+incinerate sky-blue T-9887-OKW
+take navy-blue MOSFET
+incinerate navy-blue MOSFET
+take olive-green N-5065-ALO
+take pastel-pink Z-4832-PUL
+take seashell D-1403-UXS
+incinerate seashell D-1403-UXS
+take peach-yellow D-1403-UXS
+incinerate peach-yellow D-1403-UXS
+take crimson V-0010-XGX
+take cyan J-9247-IWC
+incinerate cyan J-9247-IWC
+take puce H-0010-ZBZ
+incinerate puce H-0010-ZBZ
+take chocolate-colored D-1403-UXS
+combine pastel-pink Z-4832-PUL with chocolate-colored D-1403-UXS
+combine pastel-pink Z-4832-PUL with crimson V-0010-XGX
+combine pastel-pink Z-4832-PUL with chartreuse N-5065-ALO
+take pale-brown V-9247-KRE
+incinerate pale-brown V-9247-KRE
+take heliotrope D-1403-UXS
+incinerate heliotrope D-1403-UXS
+take crimson MOSFET
+combine crimson MOSFET with pastel-pink Z-4832-PUL
+combine crimson MOSFET with olive-green N-5065-ALO
 ```
