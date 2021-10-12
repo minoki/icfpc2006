@@ -51,7 +51,7 @@ See [adventure/README.md](adventure/README.md).
 * [antomaton/puzzle1sol.txt](antomaton/puzzle1sol.txt)
 * [antomaton/puzzle2sol.txt](antomaton/puzzle2sol.txt)
 * [antomaton/puzzle3sol.txt](antomaton/puzzle3sol.txt)
-* [antomaton/puzzle4sol.txt](antomaton/puzzle4sol.txt)
+* [antomaton/puzzle5sol.txt](antomaton/puzzle5sol.txt)
 * [antomaton/puzzle15sol.txt](antomaton/puzzle15sol.txt)
 
 ## Balance (BLNCE)
