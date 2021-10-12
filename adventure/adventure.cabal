@@ -21,11 +21,21 @@ maintainer:         minorinoki@gmail.com
 -- category:
 extra-source-files: CHANGELOG.md
 
+library
+    exposed-modules: ADVTR.Types, ADVTR.Parser, MultiSet
+    hs-source-dirs: lib
+    default-language: Haskell2010
+    build-depends:    base ^>=4.14.3.0
+                    , parsec ^>=3.1.14.0
+                    , containers ^>=0.6.5.1
+                    , mtl ^>=2.2.2
+                    , text-short ^>=0.1.3
+
 executable adventure
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: MultiSet
+    -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -34,6 +44,7 @@ executable adventure
                     , containers ^>=0.6.5.1
                     , mtl ^>=2.2.2
                     , text-short ^>=0.1.3
+                    , adventure
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options: -rtsopts
