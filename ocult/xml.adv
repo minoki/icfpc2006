@@ -131,3 +131,49 @@ Get (Factored x) => x;
 STOP
 advise xml xml.adv
 score=109
+---
+rm xml.adv
+/bin/umodem xml.adv STOP
+{-
+quality ::= Bold | Emph | Maj
+doc ::= A | B | Seq doc doc | Tag quality doc
+-}
+Do0 (Seq d1 d2) => Seq (Do0 d1) d2;
+Do0 (Tag q d) => Do1 q d;
+Do0 a => Done a;
+Do1 q (Seq d1 d2) => Seq (Do1 q d1) (Tag q d2);
+Do1 q (Tag q d) => Do1 q d;
+Do1 q1 (Tag q2 d) => Do2 q1 q2 d;
+Do1 q a => Done (Tag q a);
+Do2 Emph Bold A => Done (Tag Bold (Tag Emph A));
+Do2 Maj Bold A => Done (Tag Bold (Tag Maj A));
+Do2 Maj Emph A => Done (Tag Emph (Tag Maj A));
+Do2 Emph Bold B => Done (Tag Bold (Tag Emph B));
+Do2 Maj Bold B => Done (Tag Bold (Tag Maj B));
+Do2 Maj Emph B => Done (Tag Emph (Tag Maj B));
+Do2 q1 q2 (Seq d1 d2) => Seq (Do2 q1 q2 d1) (Tag q1 (Tag q2 d2));
+Do2 q1 q2 (Tag q1 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q2 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q3 d) => Do3 d;
+Do2 q1 q2 a => Done (Tag q1 (Tag q2 a));
+Do3 (Seq d1 d2) => Seq (Do3 d1) (Tag Bold (Tag Emph (Tag Maj d2)));
+Do3 (Tag q d) => Do3 d;
+Do3 a => Done (Tag Bold (Tag Emph (Tag Maj a)));
+Seq (Done (Seq d1 d2)) d3 => Seq d1 (Do0 (Seq d2 d3));
+Seq (Done (Tag q d1)) d2 => Seq (Tag q d1) (Do0 d2);
+Seq (Done a) d2 => Seq a (Do0 d2);
+Seq d1 (Done d2) => Done (Seq d1 d2);
+Factor (Seq d1 d2) => Seq (Factor d1) d2;
+Factor (Tag q d) => Tag q (Factor d);
+Factor a => Factored a;
+Seq (Factored d1) d2 => Seq d1 (Factor d2);
+Seq (Tag q d1) (Factored (Tag q d2)) => Tag q (Factor (Seq d1 d2));
+Seq d1 (Factored d2) => Factored (Seq d1 d2);
+Tag q (Factored d) => Factored (Tag q d);
+SNF x => Get (Do0 x);
+Get (Done x) => Get (Factor x);
+Get (Factored x) => x;
+.
+STOP
+advise xml xml.adv
+score=119
