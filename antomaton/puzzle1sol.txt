@@ -13,3 +13,4 @@ NEEWEEE
  -1^ - -0^ - - -
  - - - - - - - -
 STOP
+antomaton puzzle1sol.ant
