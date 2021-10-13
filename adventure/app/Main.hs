@@ -97,10 +97,14 @@ takeItem !limit item = do
                  tell [CTake x]
                  put (new_max_inventory, x : inventory, xs, MultiSet.deleteOne (condition x) keep)
                  pure x
-             | condition x `MultiSet.member` keep -> do
-                 tell [CTake x]
-                 put (new_max_inventory, x : inventory, xs, MultiSet.deleteOne (condition x) keep)
-                 takeItem limit item
+             | condition x `MultiSet.member` keep -> (do tell [CTake x]
+                                                         put (new_max_inventory, x : inventory, xs, MultiSet.deleteOne (condition x) keep)
+                                                         takeItem limit item
+                                                     ) <|> do -- Hack for RS232 adapter
+                                                              guard (name x == T.pack "D-9887-UUE")
+                                                              tell [CTake x,CIncinerate x]
+                                                              put (new_max_inventory, inventory, xs, keep)
+                                                              takeItem limit item
              | otherwise -> do
                  tell [CTake x,CIncinerate x]
                  put (new_max_inventory, inventory, xs, keep)

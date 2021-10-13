@@ -1,0 +1,429 @@
+incinerate keypad
+take /etc/passwd
+incinerate /etc/passwd
+take note
+incinerate note
+take downloader
+incinerate downloader
+east
+east
+north
+take battery
+take buff F-6678-DYP
+take olive-green R-4292-FWH
+incinerate olive-green R-4292-FWH
+take green D-4832-HUX
+incinerate green D-4832-HUX
+take prussian-blue P-1623-WEU
+take black X-9887-GKK
+incinerate black X-9887-GKK
+take reciprocating H-9887-MUQ
+combine battery with reciprocating H-9887-MUQ
+take bright-violet T-4292-BHD
+combine prussian-blue P-1623-WEU with bright-violet T-4292-BHD
+take flax D-4292-HRJ
+incinerate flax D-4292-HRJ
+take yellow Z-1623-COC
+combine yellow Z-1623-COC with prussian-blue P-1623-WEU
+take goldenrod X-0010-TVP
+incinerate goldenrod X-0010-TVP
+take forest-green F-6678-DYP
+incinerate forest-green F-6678-DYP
+take sky-blue N-1623-ATY
+incinerate sky-blue N-1623-ATY
+take rotating H-6678-ZJL
+incinerate rotating H-6678-ZJL
+take sienna T-6678-BEN
+incinerate sienna T-6678-BEN
+take heliotrope D-5065-UGE
+incinerate heliotrope D-5065-UGE
+take sea-green N-1623-ATY
+incinerate sea-green N-1623-ATY
+take ochre D-4292-HRJ
+incinerate ochre D-4292-HRJ
+take cream Z-1623-COC
+incinerate cream Z-1623-COC
+take powder-blue T-6678-BEN
+incinerate powder-blue T-6678-BEN
+take gold N-4832-NFF
+take burnt-umber V-0010-XLT
+take bronze J-9247-ICW
+incinerate bronze J-9247-ICW
+take selective-yellow N-4832-NFF
+incinerate selective-yellow N-4832-NFF
+take peach-puff F-6678-DYP
+incinerate peach-puff F-6678-DYP
+take bright-violet N-4832-NFF
+incinerate bright-violet N-4832-NFF
+take moccasin N-4832-NFF
+incinerate moccasin N-4832-NFF
+take royal-blue J-9247-ICW
+combine yellow Z-1623-COC with royal-blue J-9247-ICW
+take pale-mauve R-4292-FWH
+incinerate pale-mauve R-4292-FWH
+take lavender-blush N-6458-NIT
+incinerate lavender-blush N-6458-NIT
+take mint-green J-9887-IFM
+incinerate mint-green J-9887-IFM
+take olive-drab N-1623-ATY
+incinerate olive-drab N-1623-ATY
+take violet F-4292-DCF
+incinerate violet F-4292-DCF
+take gray30 X-9247-GHU
+incinerate gray30 X-9247-GHU
+take pale-blue V-9887-KAO
+incinerate pale-blue V-9887-KAO
+take steel-blue N-4832-NFF
+incinerate steel-blue N-4832-NFF
+take pale-magenta N-1623-ATY
+incinerate pale-magenta N-1623-ATY
+take pale-cornflower-blue X-9247-GHU
+incinerate pale-cornflower-blue X-9247-GHU
+take low-carb N-4832-NFF
+incinerate low-carb N-4832-NFF
+take peach-orange P-5065-WBG
+incinerate peach-orange P-5065-WBG
+take green L-6458-RXX
+incinerate green L-6458-RXX
+take eggplant Z-1623-COC
+combine battery with eggplant Z-1623-COC
+combine yellow Z-1623-COC with burnt-umber V-0010-XLT
+combine battery with yellow Z-1623-COC
+take camouflage-green J-9247-ICW
+combine battery with camouflage-green J-9247-ICW
+combine battery with buff F-6678-DYP
+combine battery with gold N-4832-NFF
+south
+west
+west
+take uploader
+combine uploader with battery
+east
+east
+east
+take gray60 Z-4292-PRV
+take pale-carmine D-9887-UUE
+incinerate pale-carmine D-9887-UUE
+take pale-cornflower-blue D-9887-UUE
+incinerate pale-cornflower-blue D-9887-UUE
+take imported D-9887-UUE
+incinerate imported D-9887-UUE
+take gray90 Z-4292-PRV
+take sepia Z-4292-PRV
+combine gray60 Z-4292-PRV with sepia Z-4292-PRV
+take gray30 D-9887-UUE
+incinerate gray30 D-9887-UUE
+take robin-egg-blue Z-4292-PRV
+combine gray90 Z-4292-PRV with robin-egg-blue Z-4292-PRV
+take slate-blue D-9887-UUE
+incinerate slate-blue D-9887-UUE
+take rosy-brown D-9887-UUE
+incinerate rosy-brown D-9887-UUE
+take gray50 Z-4292-PRV
+take misty-rose Z-4292-PRV
+incinerate misty-rose Z-4292-PRV
+take cinnamon Z-9887-CUG
+incinerate cinnamon Z-9887-CUG
+take saffron N-9247-AWO
+incinerate saffron N-9247-AWO
+take indigo V-4292-XRX
+incinerate indigo V-4292-XRX
+take pale-sandy-brown R-4832-FAV
+incinerate pale-sandy-brown R-4832-FAV
+take momemtum-preserving Z-0010-PGL
+incinerate momemtum-preserving Z-0010-PGL
+take swamp-green V-4292-XRX
+incinerate swamp-green V-4292-XRX
+take pale-pink R-1623-SOQ
+incinerate pale-pink R-1623-SOQ
+take cream R-1623-SOQ
+incinerate cream R-1623-SOQ
+take royal-blue B-9247-YCM
+incinerate royal-blue B-9247-YCM
+take burgundy J-1403-IIC
+incinerate burgundy J-1403-IIC
+take blue Z-0010-PGL
+incinerate blue Z-0010-PGL
+take pink Z-0010-PGL
+incinerate pink Z-0010-PGL
+take moss-green F-4832-DFT
+incinerate moss-green F-4832-DFT
+take pine-green B-9247-YCM
+incinerate pine-green B-9247-YCM
+take floating R-4832-FAV
+incinerate floating R-4832-FAV
+take russet R-4832-FAV
+incinerate russet R-4832-FAV
+take lavender-blush D-9887-UUE
+incinerate lavender-blush D-9887-UUE
+take old-gold N-9247-AWO
+incinerate old-gold N-9247-AWO
+take pear N-9247-AWO
+incinerate pear N-9247-AWO
+take pastel-pink D-9887-UUE
+incinerate pastel-pink D-9887-UUE
+take heliotrope D-9887-UUE
+incinerate heliotrope D-9887-UUE
+take persian-blue Z-4292-PRV
+incinerate persian-blue Z-4292-PRV
+take emerald Z-4292-PRV
+incinerate emerald Z-4292-PRV
+take violet-red Z-4292-PRV
+take blaze-orange Z-4292-PRV
+incinerate blaze-orange Z-4292-PRV
+take RS232 adapter
+combine RS232 adapter with gray90 Z-4292-PRV
+combine RS232 adapter with violet-red Z-4292-PRV
+take jade D-9887-UUE
+incinerate jade D-9887-UUE
+take steel-blue D-9887-UUE
+combine RS232 adapter with steel-blue D-9887-UUE
+combine RS232 adapter with gray60 Z-4292-PRV
+combine RS232 adapter with gray50 Z-4292-PRV
+combine uploader with RS232 adapter
+south
+take tea-green T-9887-OKW
+take chartreuse N-5065-ALO
+take dim-gray X-6458-TNF
+take scarlet J-9247-IWC
+combine scarlet J-9247-IWC with dim-gray X-6458-TNF
+combine chartreuse N-5065-ALO with scarlet J-9247-IWC
+take mustard D-4292-HMN
+take turquoise N-4832-NAJ
+take turquoise F-6678-DTT
+combine chartreuse N-5065-ALO with turquoise F-6678-DTT
+combine mustard D-4292-HMN with tea-green T-9887-OKW
+combine chartreuse N-5065-ALO with mustard D-4292-HMN
+take celadon T-9887-OKW
+incinerate celadon T-9887-OKW
+take burnt-orange T-9887-OKW
+take cadet-blue T-9887-OKW
+take pastel-green F-6678-DTT
+combine chartreuse N-5065-ALO with pastel-green F-6678-DTT
+combine chartreuse N-5065-ALO with cadet-blue T-9887-OKW
+combine chartreuse N-5065-ALO with burnt-orange T-9887-OKW
+combine chartreuse N-5065-ALO with turquoise N-4832-NAJ
+take prussian-blue X-6458-TNF
+incinerate prussian-blue X-6458-TNF
+take magenta X-6458-TNF
+incinerate magenta X-6458-TNF
+take safety-orange F-6678-DTT
+incinerate safety-orange F-6678-DTT
+take imported B-5065-YQM
+incinerate imported B-5065-YQM
+take puce X-6458-TNF
+incinerate puce X-6458-TNF
+take water-logged F-6678-DTT
+incinerate water-logged F-6678-DTT
+take thistle-colored X-6458-TNF
+incinerate thistle-colored X-6458-TNF
+take gamboge T-9887-OKW
+combine chartreuse N-5065-ALO with gamboge T-9887-OKW
+take sky-blue T-9887-OKW
+incinerate sky-blue T-9887-OKW
+take navy-blue MOSFET
+incinerate navy-blue MOSFET
+take olive-green N-5065-ALO
+take pastel-pink Z-4832-PUL
+take seashell D-1403-UXS
+incinerate seashell D-1403-UXS
+take peach-yellow D-1403-UXS
+incinerate peach-yellow D-1403-UXS
+take crimson V-0010-XGX
+take cyan J-9247-IWC
+incinerate cyan J-9247-IWC
+take puce H-0010-ZBZ
+incinerate puce H-0010-ZBZ
+take chocolate-colored D-1403-UXS
+combine pastel-pink Z-4832-PUL with chocolate-colored D-1403-UXS
+combine pastel-pink Z-4832-PUL with crimson V-0010-XGX
+combine pastel-pink Z-4832-PUL with chartreuse N-5065-ALO
+take pale-brown V-9247-KRE
+incinerate pale-brown V-9247-KRE
+take heliotrope D-1403-UXS
+incinerate heliotrope D-1403-UXS
+take crimson MOSFET
+combine crimson MOSFET with pastel-pink Z-4832-PUL
+combine crimson MOSFET with olive-green N-5065-ALO
+combine uploader with MOSFET
+north
+north
+take old X-1623-GTO
+incinerate old X-1623-GTO
+take corn V-0010-XBD
+incinerate corn V-0010-XBD
+take blue-violet P-4832-JFJ
+incinerate blue-violet P-4832-JFJ
+take gamboge X-0010-TLX
+incinerate gamboge X-0010-TLX
+take denim D-4292-HHR
+incinerate denim D-4292-HHR
+take low-carb D-5065-UVM
+incinerate low-carb D-5065-UVM
+take pear V-9247-KMI
+incinerate pear V-9247-KMI
+take ultramarine J-9247-IRG
+incinerate ultramarine J-9247-IRG
+take pink D-4292-HHR
+incinerate pink D-4292-HHR
+take discounted L-6458-RNH
+incinerate discounted L-6458-RNH
+take flax D-4292-HHR
+incinerate flax D-4292-HHR
+take cinnamon J-9247-IRG
+incinerate cinnamon J-9247-IRG
+take lemon F-9887-QAE
+incinerate lemon F-9887-QAE
+take low-carb X-1623-GTO
+incinerate low-carb X-1623-GTO
+take amethyst J-9247-IRG
+incinerate amethyst J-9247-IRG
+take reverse-chirality J-9247-IRG
+incinerate reverse-chirality J-9247-IRG
+take lemon T-9887-OFC
+incinerate lemon T-9887-OFC
+take honeydew B-4292-LWV
+incinerate honeydew B-4292-LWV
+take white F-9887-QAE
+incinerate white F-9887-QAE
+take black B-4292-LWV
+incinerate black B-4292-LWV
+take spring-green V-9247-KMI
+incinerate spring-green V-9247-KMI
+take pale-goldenrod V-0010-XBD
+incinerate pale-goldenrod V-0010-XBD
+take sangria X-1623-GTO
+incinerate sangria X-1623-GTO
+take lawn-green N-1623-AJI
+incinerate lawn-green N-1623-AJI
+take imitation R-1403-SXU
+incinerate imitation R-1403-SXU
+take sapphire X-1623-GTO
+incinerate sapphire X-1623-GTO
+take sea-green Z-4832-PPP
+incinerate sea-green Z-4832-PPP
+take gray10 F-9887-QAE
+incinerate gray10 F-9887-QAE
+take sandy-brown Z-1623-CEK
+incinerate sandy-brown Z-1623-CEK
+take gray90 R-4292-FMP
+incinerate gray90 R-4292-FMP
+take sturdy V-9887-KPW
+incinerate sturdy V-9887-KPW
+take camouflage-green J-6458-VDL
+incinerate camouflage-green J-6458-VDL
+take sturdy J-6458-VDL
+incinerate sturdy J-6458-VDL
+take wisteria X-9247-GWE
+incinerate wisteria X-9247-GWE
+take persian-blue F-9887-QAE
+incinerate persian-blue F-9887-QAE
+take sturdy Z-1623-CEK
+incinerate sturdy Z-1623-CEK
+take pastel-pink X-1623-GTO
+incinerate pastel-pink X-1623-GTO
+take sapphire R-1403-SXU
+incinerate sapphire R-1403-SXU
+take heliotrope J-6458-VDL
+incinerate heliotrope J-6458-VDL
+take mustard Z-4832-PPP
+incinerate mustard Z-4832-PPP
+take wisteria X-6458-TIJ
+incinerate wisteria X-6458-TIJ
+take coral Z-4832-PPP
+incinerate coral Z-4832-PPP
+take gray80 X-1623-GTO
+incinerate gray80 X-1623-GTO
+take ivory X-1623-GTO
+incinerate ivory X-1623-GTO
+take raw-umber T-0010-BQH
+take foreign V-9247-KMI
+incinerate foreign V-9247-KMI
+take imaginary T-0010-BQH
+take snow X-1623-GTO
+combine snow X-1623-GTO with imaginary T-0010-BQH
+take prussian-blue T-0010-BQH
+incinerate prussian-blue T-0010-BQH
+take gray-tea-green T-0010-BQH
+incinerate gray-tea-green T-0010-BQH
+take miniature V-9247-KMI
+incinerate miniature V-9247-KMI
+take steel-blue V-9247-KMI
+incinerate steel-blue V-9247-KMI
+take indigo T-0010-BQH
+incinerate indigo T-0010-BQH
+take EPROM burner
+combine EPROM burner with snow X-1623-GTO
+combine EPROM burner with raw-umber T-0010-BQH
+combine uploader with EPROM burner
+north
+take moccasin N-4292-NWT
+take gray-tea-green L-4832-RPN
+take pale-chestnut T-9247-OHI
+incinerate pale-chestnut T-9247-OHI
+take pale-cornflower-blue V-6458-XDJ
+incinerate pale-cornflower-blue V-6458-XDJ
+take misty-rose T-9247-OHI
+incinerate misty-rose T-9247-OHI
+take sangria N-4292-NWT
+take jade P-1403-WSU
+combine jade P-1403-WSU with sangria N-4292-NWT
+take yellow-green P-6678-JEZ
+combine yellow-green P-6678-JEZ with jade P-1403-WSU
+take crimson P-6678-JEZ
+combine crimson P-6678-JEZ with gray-tea-green L-4832-RPN
+take scarlet Z-5065-CGQ
+combine crimson P-6678-JEZ with scarlet Z-5065-CGQ
+combine crimson P-6678-JEZ with moccasin N-4292-NWT
+take organic T-9247-OHI
+incinerate organic T-9247-OHI
+take bright-turquoise J-1623-ITM
+combine crimson P-6678-JEZ with bright-turquoise J-1623-ITM
+take mint-green X-4832-TKP
+combine crimson P-6678-JEZ with mint-green X-4832-TKP
+take denim T-9247-OHI
+incinerate denim T-9247-OHI
+take gray30 X-4832-TKP
+incinerate gray30 X-4832-TKP
+take gray60 T-9247-OHI
+incinerate gray60 T-9247-OHI
+take azure H-6458-ZXL
+combine azure H-6458-ZXL with crimson P-6678-JEZ
+take carmine D-6678-HJX
+take cornflower-blue D-6678-HJX
+take tan D-6678-HJX
+combine tan D-6678-HJX with cornflower-blue D-6678-HJX
+take pale-mauve L-4832-RPN
+combine tan D-6678-HJX with pale-mauve L-4832-RPN
+combine azure H-6458-ZXL with yellow-green P-6678-JEZ
+take robin-egg-blue D-6678-HJX
+incinerate robin-egg-blue D-6678-HJX
+take sandy-brown P-1403-WSU
+incinerate sandy-brown P-1403-WSU
+take cadet-blue H-9247-MMG
+take pale-brown P-1403-WSU
+incinerate pale-brown P-1403-WSU
+take gray40 L-4832-RPN
+combine gray40 L-4832-RPN with carmine D-6678-HJX
+combine gray40 L-4832-RPN with cadet-blue H-9247-MMG
+take cream H-9247-MMG
+combine gray40 L-4832-RPN with cream H-9247-MMG
+take status LED
+combine status LED with gray40 L-4832-RPN
+take black D-6678-HJX
+combine status LED with black D-6678-HJX
+take periwinkle D-6678-HJX
+combine status LED with periwinkle D-6678-HJX
+take violet D-6678-HJX
+combine status LED with violet D-6678-HJX
+combine status LED with tan D-6678-HJX
+take old-lace D-6678-HJX
+incinerate old-lace D-6678-HJX
+take navy-blue D-6678-HJX
+combine status LED with navy-blue D-6678-HJX
+take burnt-sienna D-6678-HJX
+incinerate burnt-sienna D-6678-HJX
+take peppered D-6678-HJX
+combine status LED with peppered D-6678-HJX
+combine status LED with azure H-6458-ZXL
+combine uploader with status LED

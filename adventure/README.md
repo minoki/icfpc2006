@@ -69,7 +69,7 @@ use keypad
 * [ ] uploader
     * [x] MOSFET (required space: 5)
     * [x] status LED (required space: 5)
-    * [x] RS232 adapter (required space: 6)
+    * [x] RS232 adapter (required space: 5)
     * [x] EPROM burner (required space: 3)
     * [x] battery (required space: 6)
 
@@ -745,20 +745,21 @@ combine battery with gold N-4832-NFF
 
 ## RS232 adapter
 
-Required space: 6
+Required space: 5
 
 ```
 take gray60 Z-4292-PRV
 take pale-carmine D-9887-UUE
 incinerate pale-carmine D-9887-UUE
 take pale-cornflower-blue D-9887-UUE
+incinerate pale-cornflower-blue D-9887-UUE
 take imported D-9887-UUE
 incinerate imported D-9887-UUE
 take gray90 Z-4292-PRV
 take sepia Z-4292-PRV
 combine gray60 Z-4292-PRV with sepia Z-4292-PRV
 take gray30 D-9887-UUE
-combine gray30 D-9887-UUE with pale-cornflower-blue D-9887-UUE
+incinerate gray30 D-9887-UUE
 take robin-egg-blue Z-4292-PRV
 combine gray90 Z-4292-PRV with robin-egg-blue Z-4292-PRV
 take slate-blue D-9887-UUE
@@ -818,9 +819,12 @@ take violet-red Z-4292-PRV
 take blaze-orange Z-4292-PRV
 incinerate blaze-orange Z-4292-PRV
 take RS232 adapter
-combine RS232 adapter with gray30 D-9887-UUE
-combine RS232 adapter with violet-red Z-4292-PRV
 combine RS232 adapter with gray90 Z-4292-PRV
+combine RS232 adapter with violet-red Z-4292-PRV
+take jade D-9887-UUE
+incinerate jade D-9887-UUE
+take steel-blue D-9887-UUE
+combine RS232 adapter with steel-blue D-9887-UUE
 combine RS232 adapter with gray60 Z-4292-PRV
 combine RS232 adapter with gray50 Z-4292-PRV
 ```
