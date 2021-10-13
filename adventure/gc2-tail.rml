@@ -1,0 +1,90 @@
+      case stringlist_index (jump_targets, value) of
+          SomeString { s } => [ case room_from_name (s) of
+                                    NoRoom { } => return failed_command ("break", Atom { s }, "no such room")
+                                  | SomeRoom { r } => do move_self_to_room (r).
+                                                         return success_command ("break", Atom { s }).
+                              ]
+        | NoString { } => return failed_command ("break", Atom { digitToString (value) }, "index too large")
+      (* return success_command ("break", Atom { digitToString (div (len, 16)) }) *)
+      (* return failed_command ("break", describe_item (item),
+                             "you can't bring yourself to do it") *)
+  ]
+  | Drop { item } => [
+      (*
+       XXX Do garbage robots ever need to drop anything?
+       *)
+      do move_item_to_room (item, here ()).
+      return success_command ("drop", describe_item (item))
+      (*
+      return failed_command ("drop", describe_item (item),
+                             "you can't bring yourself to part with it")
+       *)
+    ]
+  | Use { item } => [
+      case item_condition (item) of
+          Pristine { } => [
+            case item_name (item) = "keypad" of
+              True { } => [
+                case room_name (here ()) = "Room With a Door" of
+                  True { } => [
+                    (* XXX Testing only!  Remove this code in production robots! *)
+                    case room_from_name ("54th Street and Ridgewood Court") of
+                      NoRoom { } => return failed_command ("use", 
+                                                           describe_item (item),
+                                            "internal error (report for maintenance!)")
+                    | SomeRoom { r } => [
+                        do move_self_to_room (r).
+                        return success_command ("use", Seq { describe_item (item),
+                            Atom { "You unlock and open the door. Passing through, "
+                                   ^ "you find yourself on the streets of Chicago. "
+                                   ^ "Seeing no reason you should ever go back, you "
+                                   ^ "allow the door to close behind you. " } }).
+                      ]
+                  ]
+                | False { } => [
+                    return failed_command ("use", describe_item (item),
+                                           "you see no way to use it in this room")
+                  ]
+              ]
+            | False { } => [
+                return failed_command ("use", describe_item (item),
+                                       "nothing interesting happens")
+              ]
+          ]
+        | Broken { c, m } => 
+            return failed_command ("use", describe_item (item),
+                                   "the " ^ (item_name (item)) ^ " is broken")
+    ]
+  | Whistle { } =>
+      return success_command ("whistle", NoData { })
+  | Hum { } =>
+      return success_command ("hum", NoData { })
+  | Speak { s } => [
+      (* 
+        XXX Note that due to a "feature" (according to the developers upstairs)
+        of the command parser, all spoken words appear in lower case.  There
+        haven't been any problem reports from field (yet) as most other functions
+        are case insensitive.
+       *)
+      case room_from_name (s) of
+        NoRoom { } => return failed_command ("speak", Atom { s }, "no such room")
+      | SomeRoom { r } => do move_self_to_room (r).
+                          return success_command ("speak", Atom { s }).
+  ]
+  | LookAround { } =>
+      return success_command ("look", describe_room (here ()))
+  | ShowInventory { } => [
+      case room_from_name (INVENTORY) of 
+        NoRoom { } =>
+          return failed_command ("show",
+                                 NoData { },
+                                 "internal error (report for maintenance!)")
+      | SomeRoom { inventory } => [
+          let items = room_items (inventory).
+          return success_command ("show", describe_items_in_inventory (items)).
+      ]
+  ]
+  | Examine { item } => [
+      return success_command ("examine", describe_item (item)).
+  ].
+EOM

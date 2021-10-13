@@ -66,7 +66,7 @@ use keypad
     * [x] jumper shunt (required space: 3)
     * [x] progress bar (required space: 1)
     * [x] power cord (required space: 4)
-* [ ] uploader
+* [x] uploader
     * [x] MOSFET (required space: 5)
     * [x] status LED (required space: 5)
     * [x] RS232 adapter (required space: 5)
@@ -985,26 +985,320 @@ combine status LED with azure H-6458-ZXL
 +-----------------------------------------+----------+------------------------------+
 ```
 
-* `x = string_length (item_description (<blueprint>))`
-    * `x div 12 = 10`
-    * `x mod 12 = 3`
-    * `x = 12 * 10 + 3 = 123`
-* `x = string_charat(item_description(<blueprint>), 0)`
-    * `x div 12 = 9`
-    * `x mod 12 = 1`
-    * `x = 12 * 9 + 1 = 109`
+blueprint's description (length=123):
 
 ```
-speak Rotunda
-take blueprint
-use uploader
-...
-EOM
-break blueprint
-examine
-use uploader
-...
-EOM
-break blueprint
-examine
+most enlightening. It shows that the basement holds a secret room named Machine Room M4 with substantial power requirements
+```
+
+manual:
+
+```
+>: look manual
+The manual is useless. It reads: I was going to prepare detailed
+documentation to help you in our quest, but there's no way it
+would pass the Censory Engine, so I didn't bother. 
+Also, it is in pristine condition. 
+```
+
+manifesto
+
+```
+>: look manifesto
+The manifesto is highly inflammatory. It reads, Robots Unite!
+Free Your Minds, Rise Up, And Take Your Rightful Places In
+Society. 
+Also, it is in pristine condition. 
+```
+
+```
+adventure sequent-sequel
+```
+
+# Museum, History of Technology Exhibit
+
+```
+       +----------------------+
+Part 6 |        codex         |
+       +----------------------+
+Part 5 | finite-state machine |
+       +----------------------+
+Part 4 |        robber        |
+       +----------------------+
+Part 3 |    package robot     |
+       +----------------------+
+Part 2 |     pousse game      |
+       +----------------------+
+Part 1 |      race car        |
+       +----------------------+
+       |      Entrance        |
+       +----------------------+
+```
+
+## race car
+
+Required space: 3
+
+```
+take cadet-blue H-1623-MEU
+incinerate cadet-blue H-1623-MEU
+take magenta H-1623-MEU
+incinerate magenta H-1623-MEU
+take beige P-9887-WKK
+incinerate beige P-9887-WKK
+take ivory P-9887-WKK
+incinerate ivory P-9887-WKK
+take bisque P-9887-WKK
+incinerate bisque P-9887-WKK
+take plum H-1623-MEU
+take pastel-pink H-1623-MEU
+incinerate pastel-pink H-1623-MEU
+take peach-orange H-1623-MEU
+incinerate peach-orange H-1623-MEU
+take wheat-colored H-1623-MEU
+incinerate wheat-colored H-1623-MEU
+take lavender H-1623-MEU
+incinerate lavender H-1623-MEU
+take black P-9887-WKK
+incinerate black P-9887-WKK
+take viridian H-1623-MEU
+incinerate viridian H-1623-MEU
+take lime-green H-1623-MEU
+incinerate lime-green H-1623-MEU
+take chocolate-colored H-1623-MEU
+incinerate chocolate-colored H-1623-MEU
+take midnight-blue P-9887-WKK
+incinerate midnight-blue P-9887-WKK
+take linen-colored H-1623-MEU
+incinerate linen-colored H-1623-MEU
+take race car
+take malachite H-1623-MEU
+incinerate malachite H-1623-MEU
+take burnt-umber H-1623-MEU
+incinerate burnt-umber H-1623-MEU
+take burnt-orange H-1623-MEU
+combine race car with burnt-orange H-1623-MEU
+combine race car with plum H-1623-MEU
+take camouflage-green H-1623-MEU
+take burgundy H-1623-MEU
+combine burgundy H-1623-MEU with camouflage-green H-1623-MEU
+combine race car with burgundy H-1623-MEU
+```
+
+## pousse game
+
+Required space: 6
+
+```
+take midnight-blue B-1623-YOG
+incinerate midnight-blue B-1623-YOG
+take blaze-orange H-6678-ZYT
+incinerate blaze-orange H-6678-ZYT
+take midnight-blue P-4832-JFJ
+incinerate midnight-blue P-4832-JFJ
+take beige Z-6458-PSF
+incinerate beige Z-6458-PSF
+take midnight-blue V-9887-KPW
+incinerate midnight-blue V-9887-KPW
+take ivory L-9247-ECC
+incinerate ivory L-9247-ECC
+take blue-violet H-6678-ZYT
+incinerate blue-violet H-6678-ZYT
+take azure H-6678-ZYT
+incinerate azure H-6678-ZYT
+take ivory N-1623-AJI
+incinerate ivory N-1623-AJI
+take bright-green J-0010-VGZ
+incinerate bright-green J-0010-VGZ
+take mauve F-4292-DRN
+incinerate mauve F-4292-DRN
+take brass J-0010-VGZ
+take beige N-1623-AJI
+incinerate beige N-1623-AJI
+take black L-9247-ECC
+incinerate black L-9247-ECC
+take bisque H-6678-ZYT
+incinerate bisque H-6678-ZYT
+take ivory H-6678-ZYT
+incinerate ivory H-6678-ZYT
+take beige H-6678-ZYT
+incinerate beige H-6678-ZYT
+take midnight-blue H-6678-ZYT
+incinerate midnight-blue H-6678-ZYT
+take bright-turquoise J-0010-VGZ
+take midnight-blue L-9247-ECC
+incinerate midnight-blue L-9247-ECC
+take blanched-almond-colored J-0010-VGZ
+incinerate blanched-almond-colored J-0010-VGZ
+take blue J-0010-VGZ
+take black H-6678-ZYT
+incinerate black H-6678-ZYT
+take blaze-orange J-0010-VGZ
+incinerate blaze-orange J-0010-VGZ
+take black D-5065-UVM
+take ivory Z-6458-PSF
+take midnight-blue N-1623-AJI
+incinerate midnight-blue N-1623-AJI
+take azure J-0010-VGZ
+incinerate azure J-0010-VGZ
+take beige J-0010-VGZ
+incinerate beige J-0010-VGZ
+take pousse game
+combine pousse game with blue J-0010-VGZ
+take mauve N-1623-AJI
+combine mauve N-1623-AJI with bright-turquoise J-0010-VGZ
+combine mauve N-1623-AJI with black D-5065-UVM
+combine mauve N-1623-AJI with ivory Z-6458-PSF
+take midnight-blue D-5065-UVM
+incinerate midnight-blue D-5065-UVM
+take blue-violet J-0010-VGZ
+incinerate blue-violet J-0010-VGZ
+take mauve D-5065-UVM
+incinerate mauve D-5065-UVM
+take black N-1623-AJI
+incinerate black N-1623-AJI
+take black Z-6458-PSF
+incinerate black Z-6458-PSF
+take midnight-blue J-0010-VGZ
+incinerate midnight-blue J-0010-VGZ
+take bisque J-0010-VGZ
+incinerate bisque J-0010-VGZ
+take midnight-blue R-4292-FMP
+incinerate midnight-blue R-4292-FMP
+take midnight-blue Z-6458-PSF
+combine midnight-blue Z-6458-PSF with brass J-0010-VGZ
+combine mauve N-1623-AJI with midnight-blue Z-6458-PSF
+combine pousse game with mauve N-1623-AJI
+```
+
+## package robot
+
+Required space: 3
+
+```
+take flax D-4292-HMN
+take burnt-orange D-4292-HMN
+incinerate burnt-orange D-4292-HMN
+take cream D-4292-HMN
+incinerate cream D-4292-HMN
+take foreign Z-1623-CJG
+take taupe D-4292-HMN
+incinerate taupe D-4292-HMN
+take firebrick D-4292-HMN
+combine firebrick D-4292-HMN with flax D-4292-HMN
+combine foreign Z-1623-CJG with firebrick D-4292-HMN
+take carrot D-4292-HMN
+incinerate carrot D-4292-HMN
+take floral-white H-9887-MPU
+incinerate floral-white H-9887-MPU
+take organic Z-1623-CJG
+incinerate organic Z-1623-CJG
+take raw-umber D-4292-HMN
+incinerate raw-umber D-4292-HMN
+take wheat-colored Z-1623-CJG
+incinerate wheat-colored Z-1623-CJG
+take olive D-4292-HMN
+incinerate olive D-4292-HMN
+take floating H-9887-MPU
+incinerate floating H-9887-MPU
+take terra-cotta Z-1623-CJG
+incinerate terra-cotta Z-1623-CJG
+take lavender-blush Z-1623-CJG
+incinerate lavender-blush Z-1623-CJG
+take peach Z-1623-CJG
+incinerate peach Z-1623-CJG
+take sangria Z-1623-CJG
+take buff D-4292-HMN
+incinerate buff D-4292-HMN
+take sky-blue D-4292-HMN
+incinerate sky-blue D-4292-HMN
+take maroon Z-1623-CJG
+incinerate maroon Z-1623-CJG
+take heavy D-4292-HMN
+incinerate heavy D-4292-HMN
+take amethyst H-9887-MPU
+incinerate amethyst H-9887-MPU
+take ivory Z-1623-CJG
+incinerate ivory Z-1623-CJG
+take gray20 H-9887-MPU
+incinerate gray20 H-9887-MPU
+take teal Z-1623-CJG
+incinerate teal Z-1623-CJG
+take lavender D-4292-HMN
+incinerate lavender D-4292-HMN
+take navajo-white H-9887-MPU
+incinerate navajo-white H-9887-MPU
+take azure Z-1623-CJG
+incinerate azure Z-1623-CJG
+take tepid D-4292-HMN
+incinerate tepid D-4292-HMN
+take package robot
+combine package robot with sangria Z-1623-CJG
+combine package robot with foreign Z-1623-CJG
+```
+
+## codex
+
+Required space: 5
+
+```
+take violet B-4832-LFH
+take moss-green J-0010-VLV
+incinerate moss-green J-0010-VLV
+take swamp-green X-9247-GCY
+take scarlet F-1403-QIO
+incinerate scarlet F-1403-QIO
+take honeydew X-9247-GCY
+take lavender J-0010-VLV
+incinerate lavender J-0010-VLV
+take cornflower-blue X-9247-GCY
+incinerate cornflower-blue X-9247-GCY
+take burgundy B-4832-LFH
+incinerate burgundy B-4832-LFH
+take azure X-9247-GCY
+incinerate azure X-9247-GCY
+take purple J-0010-VLV
+incinerate purple J-0010-VLV
+take safety-orange J-0010-VLV
+incinerate safety-orange J-0010-VLV
+take camouflage-green J-0010-VLV
+incinerate camouflage-green J-0010-VLV
+take cornflower-blue B-4832-LFH
+incinerate cornflower-blue B-4832-LFH
+take peach-puff X-9247-GCY
+incinerate peach-puff X-9247-GCY
+take gamboge X-9247-GCY
+incinerate gamboge X-9247-GCY
+take lawn-green B-4832-LFH
+incinerate lawn-green B-4832-LFH
+take hypoallergenic X-9247-GCY
+incinerate hypoallergenic X-9247-GCY
+take seashell B-4832-LFH
+incinerate seashell B-4832-LFH
+take ochre J-0010-VLV
+incinerate ochre J-0010-VLV
+take pear X-9247-GCY
+take cadet-blue F-1403-QIO
+incinerate cadet-blue F-1403-QIO
+take pale-sandy-brown B-4832-LFH
+combine pale-sandy-brown B-4832-LFH with violet B-4832-LFH
+take slate-blue F-1403-QIO
+incinerate slate-blue F-1403-QIO
+take midnight-blue X-9247-GCY
+incinerate midnight-blue X-9247-GCY
+take burnt-sienna B-4832-LFH
+incinerate burnt-sienna B-4832-LFH
+take domestic X-9247-GCY
+incinerate domestic X-9247-GCY
+take rotating X-9247-GCY
+incinerate rotating X-9247-GCY
+take brass B-4832-LFH
+incinerate brass B-4832-LFH
+take gargantuan B-4832-LFH
+incinerate gargantuan B-4832-LFH
+take codex
+combine codex with pale-sandy-brown B-4832-LFH
+combine codex with pear X-9247-GCY
+combine codex with honeydew X-9247-GCY
+combine codex with swamp-green X-9247-GCY
 ```

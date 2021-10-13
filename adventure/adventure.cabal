@@ -55,3 +55,11 @@ executable prettyprint
     hs-source-dirs:   prettyprint
     default-language: Haskell2010
     ghc-options: -rtsopts
+
+executable anticensor
+    import: deps
+    main-is:          Main.hs
+    build-depends:    process, bytestring, adventure
+    hs-source-dirs:   anticensor
+    default-language: Haskell2010
+    ghc-options: -rtsopts

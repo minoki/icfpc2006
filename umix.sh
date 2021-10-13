@@ -1,6 +1,6 @@
 if [ -x aarch64/run_jit ]; then
-    RUN=aarch64/run_jit
+    RUN="$(dirname $0)/aarch64/run_jit"
 else
-    RUN=run
+    RUN="$(dirname $0)/run"
 fi
-${RUN} umix.um
+${RUN} "$(dirname $0)/umix.um"

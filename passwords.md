@@ -1,12 +1,12 @@
 | account | name | password | content | route |
 |:--|:--|:--|:--|:--|
-| ftd | | falderal90 | icfp.exe | BASIC (complex) |
-| knr | | | | |
+| ftd | | falderal90 | icfp.exe | BASIC (hard) |
+| knr | | X3.159-1989 | C7sus4 | ADVTR (hard) |
 | gardener | Cain Gardener | mathemantica | Antomaton | BALANCE, CIRCS, ADVISE |
-| ohmega | Bill Ohmega | bidirectional | 2d (CIRCS) | BASIC, BALANCE, ADVISE |
-| yang | Y Yang | U+262F | BALANCE | ADVTR, BALANCE, BLACK |
-| howie | Howard Curry | xyzzy | Adventure | BASIC, BLACK |
-| hmonk | Harmonious Monk | COMEFROM | ADVISE (O'Cult) | ftd, ADVTR |
+| ohmega | Bill Ohmega | bidirectional | 2d (CIRCS) | BASIC (easy), BALANCE, ADVISE |
+| yang | Y Yang | U+262F | BALANCE | ADVTR (easy), BALANCE, BLACK |
+| howie | Howard Curry | xyzzy | Adventure | BASIC (easy), BLACK |
+| hmonk | Harmonious Monk | COMEFROM | ADVISE (O'Cult) | ftd, ADVTR (easy) |
 | bbarker | Betty ? | plinko | Black Knots | gardener, CIRCS |
 <!-- | assistant-root | | h1dd3n | | | -->
 

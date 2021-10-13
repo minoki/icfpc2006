@@ -126,3 +126,27 @@ ADVTR.UPL=5@999999|4aebe831bac0d8301811f1ce8659dde
 
 Adventure / Museum of Science and Industry
 ADVTR.MSI=20@999999|4e8c9212b1a7d61e6340bdf6888387f
+
+C7sus4
+INTRO.UCC=10@999999|8f9afed874f2737d2da23b2044d4868
+
+Adventure / use crowbar
+ADVTR.CRB=5@999999|2a7548c8d8581b55cf384f63aa8b26b
+
+Adventure / console
+ADVTR.CON=200@999999|9b8751d763991c749f6a6b9e49a82a9
+
+Adventure / race car
+ADVTR.RCC=60@999999|ad325af41695424ac0f7ac3c6fad4c5
+
+Adventure / pousse game
+ADVTR.PSG=60@999999|96aaff0cd1044046b1b5c7d064ebfc7
+
+Adventure / package robot
+ADVTR.PKG=60@999999|d68be9b7bea3399b57bcacce2ea630a
+
+Adventure / (carmine) robber
+ADVTR.ROB=60@999999|852c1d7ee2f7e8f82c456185bba9225
+
+Adventure / codex
+ADVTR.CDX=60@999999|be09d63c19828bc8e5acd27b6862852
