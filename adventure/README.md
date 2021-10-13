@@ -68,7 +68,7 @@ use keypad
     * [x] power cord (required space: 4)
 * [ ] uploader
     * [x] MOSFET (required space: 5)
-    * [ ] status LED
+    * [x] status LED (required space: 5)
     * [x] RS232 adapter (required space: 6)
     * [x] EPROM burner (required space: 3)
     * [x] battery (required space: 6)
@@ -893,4 +893,80 @@ incinerate heliotrope D-1403-UXS
 take crimson MOSFET
 combine crimson MOSFET with pastel-pink Z-4832-PUL
 combine crimson MOSFET with olive-green N-5065-ALO
+```
+
+## status LED
+
+Required space: 5
+
+```
+take moccasin N-4292-NWT
+take gray-tea-green L-4832-RPN
+take pale-chestnut T-9247-OHI
+incinerate pale-chestnut T-9247-OHI
+take pale-cornflower-blue V-6458-XDJ
+incinerate pale-cornflower-blue V-6458-XDJ
+take misty-rose T-9247-OHI
+incinerate misty-rose T-9247-OHI
+take sangria N-4292-NWT
+take jade P-1403-WSU
+combine jade P-1403-WSU with sangria N-4292-NWT
+take yellow-green P-6678-JEZ
+combine yellow-green P-6678-JEZ with jade P-1403-WSU
+take crimson P-6678-JEZ
+combine crimson P-6678-JEZ with gray-tea-green L-4832-RPN
+take scarlet Z-5065-CGQ
+combine crimson P-6678-JEZ with scarlet Z-5065-CGQ
+combine crimson P-6678-JEZ with moccasin N-4292-NWT
+take organic T-9247-OHI
+incinerate organic T-9247-OHI
+take bright-turquoise J-1623-ITM
+combine crimson P-6678-JEZ with bright-turquoise J-1623-ITM
+take mint-green X-4832-TKP
+combine crimson P-6678-JEZ with mint-green X-4832-TKP
+take denim T-9247-OHI
+incinerate denim T-9247-OHI
+take gray30 X-4832-TKP
+incinerate gray30 X-4832-TKP
+take gray60 T-9247-OHI
+incinerate gray60 T-9247-OHI
+take azure H-6458-ZXL
+combine azure H-6458-ZXL with crimson P-6678-JEZ
+take carmine D-6678-HJX
+take cornflower-blue D-6678-HJX
+take tan D-6678-HJX
+combine tan D-6678-HJX with cornflower-blue D-6678-HJX
+take pale-mauve L-4832-RPN
+combine tan D-6678-HJX with pale-mauve L-4832-RPN
+combine azure H-6458-ZXL with yellow-green P-6678-JEZ
+take robin-egg-blue D-6678-HJX
+incinerate robin-egg-blue D-6678-HJX
+take sandy-brown P-1403-WSU
+incinerate sandy-brown P-1403-WSU
+take cadet-blue H-9247-MMG
+take pale-brown P-1403-WSU
+incinerate pale-brown P-1403-WSU
+take gray40 L-4832-RPN
+combine gray40 L-4832-RPN with carmine D-6678-HJX
+combine gray40 L-4832-RPN with cadet-blue H-9247-MMG
+take cream H-9247-MMG
+combine gray40 L-4832-RPN with cream H-9247-MMG
+take status LED
+combine status LED with gray40 L-4832-RPN
+take black D-6678-HJX
+combine status LED with black D-6678-HJX
+take periwinkle D-6678-HJX
+combine status LED with periwinkle D-6678-HJX
+take violet D-6678-HJX
+combine status LED with violet D-6678-HJX
+combine status LED with tan D-6678-HJX
+take old-lace D-6678-HJX
+incinerate old-lace D-6678-HJX
+take navy-blue D-6678-HJX
+combine status LED with navy-blue D-6678-HJX
+take burnt-sienna D-6678-HJX
+incinerate burnt-sienna D-6678-HJX
+take peppered D-6678-HJX
+combine status LED with peppered D-6678-HJX
+combine status LED with azure H-6458-ZXL
 ```

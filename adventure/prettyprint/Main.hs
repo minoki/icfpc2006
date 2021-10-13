@@ -40,7 +40,8 @@ buildRecipe target = do
     go !baseCond !baseItem [] = pure baseItem
     go !baseCond !baseItem (m:ms)
       | MultiSet.null m = pure baseItem
-      | otherwise = do let !combined = case baseCond of
+      | otherwise = do guard $ not (target `MultiSet.member` m)
+                       let !combined = case baseCond of
                                          Pristine _ -> error "unexpected"
                                          Broken set cond' -> let set' = MultiSet.difference set m
                                                              in if MultiSet.null set' then
@@ -70,8 +71,9 @@ main = do args <- getArgs
                                       itemsByName = MultiSet.fromList <$> List.foldl' (\m item -> Map.insertWith (++) (name item) [condition item] m) Map.empty items
                                   let recipes :: [Recipe]
                                       recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
+                                  -- putStr (recipeToString 0 (head recipes))
                                   putStrLn $ "# of recipes: " ++ show (length recipes)
-                                  forM_ recipes $ \recipe -> do
+                                  forM_ (take 10 recipes) $ \recipe -> do
                                     putStrLn "---"
                                     putStr (recipeToString 0 recipe)
             [] -> putStrLn "Usage: adventure [filename] [target]"

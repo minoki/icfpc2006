@@ -63,7 +63,8 @@ buildRecipe target = do
     go !baseCond !baseItem [] = pure baseItem
     go !baseCond !baseItem (m:ms)
       | MultiSet.null m = pure baseItem
-      | otherwise = do let !combined = case baseCond of
+      | otherwise = do guard $ not (target `MultiSet.member` m)
+                       let !combined = case baseCond of
                                          Pristine _ -> error "unexpected"
                                          Broken set cond' -> let set' = MultiSet.difference set m
                                                              in if MultiSet.null set' then
@@ -246,7 +247,7 @@ main = do args <- getArgs
                                       itemsByName = MultiSet.fromList <$> List.foldl' (\m item -> Map.insertWith (++) (name item) [condition item] m) Map.empty items
                                   let recipes :: [Recipe]
                                       recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
-                                  putStrLn $ "# of recipes: " ++ show (length recipes)
+                                  -- putStrLn $ "# of recipes: " ++ show (length recipes)
                                   let initial_limit = 2
                                       go !limit | limit > 6 = putStrLn "Suitable solution not found"
                                                 | otherwise = do
@@ -270,10 +271,10 @@ main = do args <- getArgs
                                                                             minimum $ map (\((m,_,_,_),_) -> m) result
                                                                           else
                                                                             limit
-                                                      putStrLn $ "Required space: " ++ show min_inventory
+                                                      let ((m,_,_,_),commands) = head $ filter (\((m,_,_,_),_) -> m <= min_inventory) result
+                                                      putStrLn $ "Required space: " ++ show m
                                                       putStrLn "---"
-                                                      let result0 = head $ filter (\((m,_,_,_),_) -> m == min_inventory) result
-                                                      forM_ (snd result0) $ \command -> do
+                                                      forM_ commands $ \command -> do
                                                         putStrLn (commandToString command)
                                   go initial_limit
             [] -> putStrLn "Usage: adventure [filename] [target]"
