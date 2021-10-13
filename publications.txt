@@ -120,3 +120,9 @@ ADVTR.MOS=20@999999|da3eb85b8789794fdedb6ccc1fb2d89
 
 Adventure / status LED
 ADVTR.LED=20@999999|229109a795487bf246e199fceca0643
+
+Adventure / use uploader
+ADVTR.UPL=5@999999|4aebe831bac0d8301811f1ce8659dde
+
+Adventure / Museum of Science and Industry
+ADVTR.MSI=20@999999|4e8c9212b1a7d61e6340bdf6888387f

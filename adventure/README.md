@@ -974,3 +974,37 @@ take peppered D-6678-HJX
 combine status LED with peppered D-6678-HJX
 combine status LED with azure H-6458-ZXL
 ```
+
+# The Museum of Science and Industry
+
+```
+                                          +----------+
+                                          | Entrance |
++-----------------------------------------+----------+------------------------------+
+| History of Technology Exhibit, Entrance | Rotunda  | Games and Amusements Exhibit |
++-----------------------------------------+----------+------------------------------+
+```
+
+* `x = string_length (item_description (<blueprint>))`
+    * `x div 12 = 10`
+    * `x mod 12 = 3`
+    * `x = 12 * 10 + 3 = 123`
+* `x = string_charat(item_description(<blueprint>), 0)`
+    * `x div 12 = 9`
+    * `x mod 12 = 1`
+    * `x = 12 * 9 + 1 = 109`
+
+```
+speak Rotunda
+take blueprint
+use uploader
+...
+EOM
+break blueprint
+examine
+use uploader
+...
+EOM
+break blueprint
+examine
+```
