@@ -148,5 +148,8 @@ ADVTR.PKG=60@999999|d68be9b7bea3399b57bcacce2ea630a
 Adventure / (carmine) robber
 ADVTR.ROB=60@999999|852c1d7ee2f7e8f82c456185bba9225
 
+Adventure / finite-state machine
+ADVTR.FSM=60@999999|b70e60511ba0ae0dec3d54d7e6f042c
+
 Adventure / codex
 ADVTR.CDX=60@999999|be09d63c19828bc8e5acd27b6862852

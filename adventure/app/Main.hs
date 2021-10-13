@@ -252,7 +252,7 @@ main = do args <- getArgs
                                   let recipes :: [Recipe]
                                       recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
                                   -- putStrLn $ "# of recipes: " ++ show (length recipes)
-                                  let initial_limit = 2
+                                  let initial_limit = 6
                                       go !limit | limit > 6 = putStrLn "Suitable solution not found"
                                                 | otherwise = do
                                                     {-
@@ -271,9 +271,9 @@ main = do args <- getArgs
                                                       putStrLn $ "Could not be done with space=" ++ show limit
                                                       go (limit + 1)
                                                     else do
-                                                      let min_inventory = if limit == initial_limit then
+                                                      let min_inventory = {- if limit == initial_limit then
                                                                             minimum $ map (\((m,_,_,_),_) -> m) result
-                                                                          else
+                                                                          else -}
                                                                             limit
                                                       let ((m,_,_,_),commands) = head $ filter (\((m,_,_,_),_) -> m <= min_inventory) result
                                                       putStrLn $ "Required space: " ++ show m

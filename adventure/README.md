@@ -1237,6 +1237,78 @@ combine package robot with sangria Z-1623-CJG
 combine package robot with foreign Z-1623-CJG
 ```
 
+## finite-state machine
+
+Required space: 4
+
+```
+take lemon P-5065-WVK
+incinerate lemon P-5065-WVK
+take heavy T-6678-BYR
+incinerate heavy T-6678-BYR
+take azure L-6458-RSD
+take dodger-blue L-6458-RSD
+take gray70 P-5065-WVK
+incinerate gray70 P-5065-WVK
+take tan T-6678-BYR
+incinerate tan T-6678-BYR
+take gold L-6458-RSD
+incinerate gold L-6458-RSD
+take cream T-6678-BYR
+incinerate cream T-6678-BYR
+take blanched-almond-colored L-6458-RSD
+incinerate blanched-almond-colored L-6458-RSD
+take malachite L-6458-RSD
+incinerate malachite L-6458-RSD
+take pale-pink P-5065-WVK
+incinerate pale-pink P-5065-WVK
+take bright-violet T-6678-BYR
+incinerate bright-violet T-6678-BYR
+take fuchsia P-5065-WVK
+incinerate fuchsia P-5065-WVK
+take sea-green L-6458-RSD
+take bright-green T-6678-BYR
+incinerate bright-green T-6678-BYR
+take bright-green P-5065-WVK
+incinerate bright-green P-5065-WVK
+take pale-pink L-6458-RSD
+incinerate pale-pink L-6458-RSD
+take goldenrod T-6678-BYR
+incinerate goldenrod T-6678-BYR
+take cardinal T-6678-BYR
+incinerate cardinal T-6678-BYR
+take bright-turquoise T-6678-BYR
+incinerate bright-turquoise T-6678-BYR
+take cornsilk T-6678-BYR
+incinerate cornsilk T-6678-BYR
+take cornsilk P-5065-WVK
+incinerate cornsilk P-5065-WVK
+take malachite T-6678-BYR
+incinerate malachite T-6678-BYR
+take cyan T-6678-BYR
+incinerate cyan T-6678-BYR
+take powder-blue T-6678-BYR
+incinerate powder-blue T-6678-BYR
+take raw-umber L-6458-RSD
+incinerate raw-umber L-6458-RSD
+take peach L-6458-RSD
+incinerate peach L-6458-RSD
+take spring-green L-6458-RSD
+incinerate spring-green L-6458-RSD
+take celadon P-5065-WVK
+incinerate celadon P-5065-WVK
+take prussian-blue L-6458-RSD
+incinerate prussian-blue L-6458-RSD
+take domestic L-6458-RSD
+incinerate domestic L-6458-RSD
+take plum L-6458-RSD
+incinerate plum L-6458-RSD
+take finite-state machine
+combine finite-state machine with sea-green L-6458-RSD
+combine finite-state machine with dodger-blue L-6458-RSD
+combine finite-state machine with azure L-6458-RSD
+```
+
 ## codex
 
 Required space: 5

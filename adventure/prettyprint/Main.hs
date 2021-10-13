@@ -72,7 +72,7 @@ main = do args <- getArgs
                                   let recipes :: [Recipe]
                                       recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
                                   -- putStr (recipeToString 0 (head recipes))
-                                  putStrLn $ "# of recipes: " ++ show (length recipes)
+                                  -- putStrLn $ "# of recipes: " ++ show (length recipes)
                                   forM_ (take 10 recipes) $ \recipe -> do
                                     putStrLn "---"
                                     putStr (recipeToString 0 recipe)
