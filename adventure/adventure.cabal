@@ -43,7 +43,8 @@ executable solver
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    adventure
+    build-depends:    optparse-applicative
+                    , adventure
     hs-source-dirs:   solver
     default-language: Haskell2010
     ghc-options: -rtsopts
@@ -59,7 +60,9 @@ executable prettyprint
 executable anticensor
     import: deps
     main-is:          Main.hs
-    build-depends:    process, bytestring, adventure
+    build-depends:    process
+                    , bytestring
+                    , adventure
     hs-source-dirs:   anticensor
     default-language: Haskell2010
     ghc-options: -rtsopts

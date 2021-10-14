@@ -12,6 +12,8 @@
 
 Solvable by hand.
 
+Required space: 6
+
 ```
 north
 take bolt
@@ -72,6 +74,21 @@ use keypad
     * [x] RS232 adapter (required space: 5)
     * [x] EPROM burner (required space: 3)
     * [x] battery (required space: 6)
+
+Commands to solve:
+
+```
+cabal run -O2 -- solver USB-cable.txt USB\ cable
+cabal run -O2 -- solver display.txt display
+cabal run -O2 -- solver jumper-shunt.txt jumper\ shunt
+cabal run -O2 -- solver progress-bar.txt progress\ bar
+cabal run -O2 -- solver power-cord.txt power\ cord
+cabal run -O2 -- solver MOSFET.txt MOSFET
+cabal run -O2 -- solver status-LED.txt status\ LED
+cabal run -O2 -- solver RS232-adapter.txt RS232\ adapter
+cabal run -O2 -- solver EPROM-burner.txt EPROM\ burner
+cabal run -O2 -- solver battery.txt battery
+```
 
 ## USB cable
 

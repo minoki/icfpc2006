@@ -1,5 +1,5 @@
--- Input: switch sexp
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE NamedFieldPuns #-}
 module Main where
 import           ADVTR.Parser
 import           ADVTR.Types
@@ -7,15 +7,15 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.RWS.Lazy
 import           Control.Monad.State.Strict
-import           Control.Monad.Trans
-import           Control.Monad.Writer.Strict
-import qualified Data.List                   as List
-import qualified Data.Map.Strict             as Map
+import           Control.Monad.Trans        (lift)
+import qualified Data.List                  as List
+import qualified Data.Map.Strict            as Map
 import           Data.Maybe
-import qualified Data.Text.Short             as T
-import qualified MultiSet                    as MultiSet
+import qualified Data.Text.Short            as T
+import qualified MultiSet                   as MultiSet
+import qualified Options.Applicative        as OA
 import           System.Environment
-import           Text.Parsec.String          (parseFromFile)
+import           Text.Parsec.String         (parseFromFile)
 
 takeOneOfList :: [a] -> [(a,[a])]
 takeOneOfList xs = go [] xs
@@ -161,36 +161,59 @@ lengthAtMost !limit xs = go 0 xs
     go !acc (_:xs) | acc >= limit = Nothing
                    | otherwise = go (acc + 1) xs
 
+data AdvSolver = AdvSolver { inputFilename :: String
+                           , targetItem :: String
+                           , initialLimit :: !Int
+                           , findMinimum :: !Bool
+                           }
+advSolver :: OA.Parser AdvSolver
+advSolver = AdvSolver
+            <$> OA.strArgument (OA.metavar "FILE")
+            <*> OA.strArgument (OA.metavar "TARGET")
+            <*> OA.option OA.auto (OA.long "initial-limit" <> OA.metavar "N" <> OA.showDefault <> OA.value 4) -- suitable default for 'finite-state machine'
+            <*> OA.switch (OA.long "find-minimum")
+
+runSolver :: AdvSolver -> IO ()
+runSolver (AdvSolver { inputFilename, targetItem, initialLimit, findMinimum }) = do
+  result <- parseFromFile resultP inputFilename
+  case result of
+    Left err -> print err
+    Right items -> do mapM_ print items
+                      putStrLn "---"
+                      let itemsByName :: Map.Map T.ShortText (MultiSet.MultiSet Condition)
+                          itemsByName = MultiSet.fromList <$> List.foldl' (\m item -> Map.insertWith (++) (name item) [condition item] m) Map.empty items
+                      let recipes :: [Recipe]
+                          recipes = evalStateT (buildRecipe (Pristine (T.pack targetItem))) itemsByName
+                      putStrLn $ "# of recipes: " ++ case lengthAtMost 100 recipes of
+                                                       Just n -> show n
+                                                       Nothing -> "more than 100"
+                      let go !limit | limit > 6 = putStrLn "Suitable solution not found"
+                                    | otherwise = do
+                                        let result :: [((Int,[Item],[Item],MultiSet.MultiSet Condition),[Command])]
+                                            result = do recipe <- recipes
+                                                        let keep = MultiSet.fromList $ recipeDependencies recipe
+                                                        execRWST (solve recipe) limit (0,[],items,keep)
+                                        if null result then do
+                                          putStrLn $ "Could not be done with space=" ++ show limit
+                                          go (limit + 1)
+                                        else do
+                                          let min_inventory = if limit == initialLimit then
+                                                                minimum $ map (\((m,_,_,_),_) -> m) $ if findMinimum then
+                                                                                                        result
+                                                                                                      else
+                                                                                                        take 10000 result
+                                                              else
+                                                                limit
+                                          let ((m,_,_,_),commands):_ = filter (\((m,_,_,_),_) -> m <= min_inventory) result
+                                          putStrLn $ "Required space: " ++ show m
+                                          putStrLn "---"
+                                          forM_ commands $ \command -> do
+                                            putStrLn (commandToString command)
+                      go initialLimit
 main :: IO ()
-main = do args <- getArgs
-          case args of
-            [filename,target] -> do
-              result <- parseFromFile resultP filename
-              case result of
-                Left err -> print err
-                Right items -> do mapM_ print items
-                                  putStrLn "---"
-                                  let itemsByName :: Map.Map T.ShortText (MultiSet.MultiSet Condition)
-                                      itemsByName = MultiSet.fromList <$> List.foldl' (\m item -> Map.insertWith (++) (name item) [condition item] m) Map.empty items
-                                  let recipes :: [Recipe]
-                                      recipes = evalStateT (buildRecipe (Pristine (T.pack target))) itemsByName
-                                  putStrLn $ "# of recipes: " ++ case lengthAtMost 100 recipes of
-                                                                   Just n -> show n
-                                                                   Nothing -> "more than 100"
-                                  let initial_limit = 2
-                                      go !limit | limit > 6 = putStrLn "Suitable solution not found"
-                                                | otherwise = do
-                                                    let result :: [((Int,[Item],[Item],MultiSet.MultiSet Condition),[Command])]
-                                                        result = do recipe <- recipes
-                                                                    let keep = MultiSet.fromList $ recipeDependencies recipe
-                                                                    execRWST (solve recipe) limit (0,[],items,keep)
-                                                    case result of
-                                                      [] -> do putStrLn $ "Could not be done with space=" ++ show limit
-                                                               go (limit + 1)
-                                                      ((m,_,_,_),commands):_ -> do
-                                                        putStrLn $ "Required space: " ++ show m
-                                                        putStrLn "---"
-                                                        forM_ commands $ \command -> do
-                                                          putStrLn (commandToString command)
-                                  go initial_limit
-            [] -> putStrLn "Usage: solver [filename] [target]"
+main = runSolver =<< OA.execParser opts
+  where
+    opts = OA.info (advSolver <**> OA.helper)
+           (OA.fullDesc
+           <> OA.progDesc "Find a procedure to repair items"
+           <> OA.header "Adventure Solver")
