@@ -94,3 +94,23 @@ STOP
 advise run arith2.adv arith.tests
 advise arith arith2.adv
 score=163
+---
+rm arith2.adv
+/bin/umodem arith2.adv STOP
+Compute Z => Computed Z;
+Compute (S x) => S (Compute x);
+Compute (Add x y) => Add x (Compute y);
+Compute (Mult x y) => Mult x (Compute y);
+S (Computed x) => Computed (S x);
+Add x (Computed y) => Add (Compute x) y;
+Mult x (Computed y) => Mult (Compute x) y;
+Add (Computed Z) y => Compute y;
+Add (Computed (S x)) y => S (Compute (Add x y));
+Mult (Computed Z) y => Computed Z;
+Mult (Computed (S x)) y => Compute (Add y (Mult x y));
+Computed x => x;
+.
+STOP
+advise run arith2.adv arith.tests
+advise arith arith2.adv
+score=
