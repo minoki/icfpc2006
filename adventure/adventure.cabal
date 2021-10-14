@@ -34,7 +34,7 @@ library
     hs-source-dirs: lib
     default-language: Haskell2010
 
-executable adventure
+executable solver
     import: deps
     main-is:          Main.hs
 
@@ -44,7 +44,7 @@ executable adventure
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    adventure
-    hs-source-dirs:   app
+    hs-source-dirs:   solver
     default-language: Haskell2010
     ghc-options: -rtsopts
 

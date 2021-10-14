@@ -1237,6 +1237,68 @@ combine package robot with sangria Z-1623-CJG
 combine package robot with foreign Z-1623-CJG
 ```
 
+## (carmine) robber
+
+Required space: 2
+
+```
+take amber X-4832-TFT
+take amethyst L-4832-RKR
+incinerate amethyst L-4832-RKR
+take aquamarine robber
+incinerate aquamarine robber
+take azure L-4832-RKR
+incinerate azure L-4832-RKR
+take beige L-4832-RKR
+incinerate beige L-4832-RKR
+take bisque L-4832-RKR
+incinerate bisque L-4832-RKR
+take black H-9247-MHK
+incinerate black H-9247-MHK
+take blanched-almond-colored D-6678-HED
+incinerate blanched-almond-colored D-6678-HED
+take blaze-orange L-4832-RKR
+incinerate blaze-orange L-4832-RKR
+take blue D-6678-HED
+incinerate blue D-6678-HED
+take blue-violet T-6458-BNR
+combine amber X-4832-TFT with blue-violet T-6458-BNR
+take bondi-blue X-5065-GQY
+incinerate bondi-blue X-5065-GQY
+take brass B-6678-LTH
+incinerate brass B-6678-LTH
+take bright-green F-9247-QWO
+incinerate bright-green F-9247-QWO
+take bright-turquoise L-4832-RKR
+incinerate bright-turquoise L-4832-RKR
+take bright-violet J-4832-VAV
+incinerate bright-violet J-4832-VAV
+take bronze N-1403-ADE
+incinerate bronze N-1403-ADE
+take brown R-0010-FGL
+combine amber X-4832-TFT with brown R-0010-FGL
+take buff B-1403-YIC
+incinerate buff B-1403-YIC
+take burgundy T-6458-BNR
+incinerate burgundy T-6458-BNR
+take burlywood-colored X-5065-GQY
+incinerate burlywood-colored X-5065-GQY
+take burnt-orange B-6678-LTH
+incinerate burnt-orange B-6678-LTH
+take burnt-sienna F-9247-QWO
+incinerate burnt-sienna F-9247-QWO
+take burnt-umber J-4832-VAV
+incinerate burnt-umber J-4832-VAV
+take cadet-blue N-1403-ADE
+incinerate cadet-blue N-1403-ADE
+take camouflage-green R-0010-FGL
+incinerate camouflage-green R-0010-FGL
+take cardinal B-1403-YIC
+combine cardinal B-1403-YIC with amber X-4832-TFT
+take carmine robber
+combine carmine robber with cardinal B-1403-YIC
+```
+
 ## finite-state machine
 
 Required space: 4
