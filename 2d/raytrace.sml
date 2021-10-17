@@ -787,4 +787,5 @@ rm raytrace.2d
 :                                          *=====*:
 ,.................................................,STOP
 verify raytrace raytrace.2d
+program area=21960
 *)
