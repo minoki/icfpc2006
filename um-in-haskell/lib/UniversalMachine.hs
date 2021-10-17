@@ -82,8 +82,6 @@ runST !state@(State !pc !arrays !registers !freelist) = do
                y <- readReg c
                writeReg a (complement (x .&. y))
                go (pc + 1)
-          7 -> -- Halt
-            return state { pc = pc }
           8 -> -- Allocation
             do capacity <- readReg c
                newArr <- UM.replicate (fromIntegral capacity) 0
@@ -95,15 +93,11 @@ runST !state@(State !pc !arrays !registers !freelist) = do
                                           x:xs -> do VM.write arrays x newArr
                                                      return (x, arrays, xs)
                writeReg b (fromIntegral i)
-               runST (State (pc + 1) arrays' registers freelist')
+               runST State { pc = pc + 1, arrays = arrays', registers = registers, freelist = freelist' }
           9 -> -- Abandonment
             do i <- readReg c
                VM.write arrays (fromIntegral i) undefined
-               runST (State (pc + 1) arrays registers (fromIntegral i : freelist))
-          10 -> -- Output
-            return state { pc = pc }
-          11 -> -- Input
-            return state { pc = pc }
+               runST State { pc = pc + 1, arrays = arrays, registers = registers, freelist = fromIntegral i : freelist }
           12 -> -- Load Program
             do i <- readReg b
                pc' <- fromIntegral <$> readReg c
@@ -119,7 +113,8 @@ runST !state@(State !pc !arrays !registers !freelist) = do
                    !value = op .&. 0x1FFFFFF
                writeReg a value
                go (pc + 1)
-          _ -> error "Invalid Instruction"
+          _ -> -- Halt, Output, Input, Invalid
+            return State { pc = pc, arrays = arrays, registers = registers, freelist = freelist }
   go pc
 
 {-# INLINE run #-}
