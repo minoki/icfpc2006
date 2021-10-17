@@ -11,6 +11,8 @@
 <!-- | assistant-root | | h1dd3n | | | -->
 <!-- | associate-root | | @tth3 | | | -->
 
+![](passwords.png)
+
 ADVTR's /etc/passwd:
 
 ```

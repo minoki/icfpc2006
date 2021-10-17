@@ -43,6 +43,9 @@ umix.um: run codex.umz extract.lua
 CBV.png: codex.umz extract-CBV.hs
 	cabal v2-run extract-CBV.hs
 
+passwords.png: passwords.dot
+	dot -Tpng -o$@ $<
+
 .PHONY: clean
 clean:
 	-rm run
