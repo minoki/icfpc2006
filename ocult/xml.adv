@@ -222,3 +222,40 @@ Factored x => x;
 STOP
 advise xml xml.adv
 score=122
+---
+rm xml.adv
+/bin/umodem xml.adv STOP
+SNF (Seq d1 d2) => Seq (SNF d1) d2;
+SNF (Tag q d) => Do1 q d;
+SNF a => Done a;
+Do1 q (Seq d1 d2) => Seq (Do1 q d1) (Tag q d2);
+Do1 q (Tag q d) => Do1 q d;
+Do1 q1 (Tag q2 d) => Do2 q1 q2 d;
+Do1 q a => Done (Tag q a);
+Do2 q1 q2 (Seq d1 d2) => Seq (Do2 q1 q2 d1) (Tag q1 (Tag q2 d2));
+Do2 q1 q2 (Tag q1 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q2 d) => Do2 q1 q2 d;
+Do2 q1 q2 (Tag q3 d) => Do3 d;
+Do2 Emph Bold a => Done (Tag Bold (Tag Emph a));
+Do2 Maj q a => Done (Tag q (Tag Maj a));
+Do2 q1 q2 a => Done (Tag q1 (Tag q2 a));
+Do3 (Seq d1 d2) => Seq (Do3 d1) (Tag Bold (Tag Emph (Tag Maj d2)));
+Do3 (Tag q d) => Do3 d;
+Do3 a => Done (Tag Bold (Tag Emph (Tag Maj a)));
+Seq (Done (Seq d1 d2)) d3 => Seq d1 (SNF (Seq d2 d3));
+Seq (Done (Tag q d1)) d2 => Seq (Tag q d1) (SNF d2);
+Seq (Done a) d2 => Seq a (SNF d2);
+Seq d1 (Done d2) => Done (Seq d1 d2);
+Factor (Seq d1 d2) => Seq (Factor d1) d2;
+Factor (Tag q d) => Tag q (Factor d);
+Factor a => Factored a;
+Seq (Factored d1) d2 => Seq d1 (Factor d2);
+Seq (Tag q d1) (Factored (Tag q d2)) => Tag q (Factor (Seq d1 d2));
+Seq d1 (Factored d2) => Factored (Seq d1 d2);
+Tag q (Factored d) => Factored (Tag q d);
+Done x => Factor x;
+Factored x => x;
+.
+STOP
+advise xml xml.adv
+score=132

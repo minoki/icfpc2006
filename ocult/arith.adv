@@ -23,6 +23,7 @@ Compute x => x;
 STOP
 advise run arith2.adv arith.tests
 advise arith arith2.adv
+score=160
 ---
 rm arith2.adv
 /bin/umodem arith2.adv STOP
@@ -113,4 +114,4 @@ Computed x => x;
 STOP
 advise run arith2.adv arith.tests
 advise arith arith2.adv
-score=
+score=164
