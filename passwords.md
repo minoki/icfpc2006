@@ -9,6 +9,7 @@
 | hmonk | Harmonious Monk | COMEFROM | ADVISE (O'Cult) | ftd, ADVTR (easy) |
 | bbarker | Betty ? | plinko | Black Knots | gardener, CIRCS |
 <!-- | assistant-root | | h1dd3n | | | -->
+<!-- | associate-root | | @tth3 | | | -->
 
 ADVTR's /etc/passwd:
 

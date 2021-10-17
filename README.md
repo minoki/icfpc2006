@@ -45,6 +45,7 @@ See [adventure/README.md](adventure/README.md).
 
 * [2d/mult.sml](2d/mult.sml)
 * [2d/reverse.sml](2d/reverse.sml)
+* [2d/raytrace.sml](2d/raytrace.sml)
 
 ## Antomaton (ANTWO)
 
