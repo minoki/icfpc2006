@@ -61,7 +61,7 @@ See [balance/README.md](balance/README.md).
 
 ## Black Knots (BLACK)
 
-See [blackknot/README.md](blackknot/README.md).
+See [blackknots/README.md](blackknots/README.md).
 
 ## Advise / O'Cult (ADVIS)
 
