@@ -10,6 +10,14 @@
 #define LIKELY(x) (x)
 #define UNLIKELY(x) (x)
 #endif
+#if !defined(__has_attribute)
+#define __has_attribute(x) 0
+#endif
+#if __has_attribute(musttail)
+#define MUSTTAIL __attribute__((musttail))
+#else
+#define MUSTTAIL
+#endif
 struct array {
     uint32_t length;
     uint32_t data[];
@@ -39,7 +47,7 @@ void OP_CondMove(PARAMS)
         reg[a] = reg[b];
     }
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_ArrayIndex(PARAMS)
 {
@@ -54,7 +62,7 @@ void OP_ArrayIndex(PARAMS)
     assert(reg[c] < ai->length);
     reg[a] = ai->data[reg[c]];
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_ArrayAmendment(PARAMS)
 {
@@ -72,7 +80,7 @@ void OP_ArrayAmendment(PARAMS)
         program[reg[b]] = operations[reg[c] >> 28];
     }
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Add(PARAMS)
 {
@@ -82,7 +90,7 @@ void OP_Add(PARAMS)
     uint32_t c = op & 7;
     reg[a] = reg[b] + reg[c];
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Mul(PARAMS)
 {
@@ -92,7 +100,7 @@ void OP_Mul(PARAMS)
     uint32_t c = op & 7;
     reg[a] = reg[b] * reg[c];
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Div(PARAMS)
 {
@@ -103,7 +111,7 @@ void OP_Div(PARAMS)
     assert(reg[c] != 0);
     reg[a] = reg[b] / reg[c];
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_NotAnd(PARAMS)
 {
@@ -113,7 +121,7 @@ void OP_NotAnd(PARAMS)
     uint32_t c = op & 7;
     reg[a] = ~(reg[b] & reg[c]);
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Halt(PARAMS)
 {
@@ -145,7 +153,7 @@ void OP_Alloc(PARAMS)
     arr[i] = newarr;
     reg[b] = i;
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Abandon(PARAMS)
 {
@@ -166,7 +174,7 @@ void OP_Abandon(PARAMS)
     }
     *freelist_end++ = i;
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Output(PARAMS)
 {
@@ -175,7 +183,7 @@ void OP_Output(PARAMS)
     assert(reg[c] <= 255);
     putchar(reg[c]);
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Input(PARAMS)
 {
@@ -190,7 +198,7 @@ void OP_Input(PARAMS)
         reg[c] = (uint32_t)ch;
     }
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_LoadProgram(PARAMS)
 {
@@ -212,7 +220,7 @@ void OP_LoadProgram(PARAMS)
     }
     pc = reg[c];
     assert(pc < arr[0]->length);
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Orthography(PARAMS)
 {
@@ -221,7 +229,7 @@ void OP_Orthography(PARAMS)
     uint32_t value = op & ((UINT32_C(1) << 25) - 1);
     reg[a] = value;
     ++pc;
-    return program[pc](ARGS);
+    MUSTTAIL return program[pc](ARGS);
 }
 void OP_Invalid(PARAMS)
 {
