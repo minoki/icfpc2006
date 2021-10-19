@@ -2,14 +2,16 @@
 module Main where
 import           Control.Applicative
 import           Control.Monad
+import           Data.Either
 import           Data.Foldable
+import qualified Data.IntSet         as IntSet
+import qualified Data.IntMap.Strict  as IntMap
 import qualified Data.List           as List
 import           Data.Maybe
 import qualified Data.Sequence       as Seq
 import qualified Data.Vector.Unboxed as U
 import           System.Environment
 import           Text.Read
-import Data.Either
 
 parseSpec :: String -> Maybe (Int,Int,Int)
 parseSpec s = listToMaybe $ do (x,rest) <- reads s
@@ -39,8 +41,32 @@ showKnot width i = List.replicate i '|' ++ "><" ++ List.replicate (width - 2 - i
 showKnots :: Int -> Knots -> [String]
 showKnots width knots = map (showKnot width) knots
 
+sortKnots :: Knots -> Knots
+sortKnots [] = []
+sortKnots (x:xs) = let go set map [] acc = IntMap.lookupMin map
+                       go set map (y:ys) acc | IntSet.member y set || IntSet.member (y-1) set || IntSet.member (y+1) set || y >= x - 1 = go (IntSet.insert y set) map ys (y:acc)
+                                             | otherwise = go (IntSet.insert y set) (IntMap.insert y (reverse acc ++ ys) map) ys (y:acc)
+                   in case go (IntSet.singleton x) IntMap.empty xs [] of
+                        Just (y, ys)  -> y : sortKnots (x:ys)
+                        Nothing -> x : sortKnots xs
+
+showKnotsCompressed :: Int -> Knots -> [String]
+showKnotsCompressed width knots = go $ sortKnots knots
+  where
+    go :: Knots -> [String]
+    go [] = []
+    go (x:xs) = let (rest,xs') = go2 (x+2) IntSet.empty IntMap.empty xs []
+                in (List.replicate x '|' ++ "><" ++ rest) : go xs'
+    go2 :: Int -> IntSet.IntSet -> IntMap.IntMap Knots -> Knots -> Knots -> (String, Knots)
+    go2 !y0 set map [] acc = case IntMap.lookupMin map of
+                               Nothing -> (List.replicate (width - y0) '|', reverse acc)
+                               Just (y, xs) -> let (rest,xs') = go2 (y+2) IntSet.empty IntMap.empty xs []
+                                               in (List.replicate (y - y0) '|' ++ "><" ++ rest, xs')
+    go2 !y0 set map (x:xs) acc | IntSet.member x set || IntSet.member (x-1) set || IntSet.member (x+1) set || x < y0 = go2 y0 (IntSet.insert x set) map xs (x:acc)
+                               | otherwise = go2 y0 (IntSet.insert x set) (IntMap.insert x (reverse acc ++ xs) map) xs (x:acc)
+
 perms :: Permutation -> Knots -> [Permutation]
-perms !p [] = [p]
+perms !p []     = [p]
 perms !p (x:xs) = p : perms (p U.// [(x,p U.! (x+1)),(x+1,p U.! x)]) xs
 
 data Way = None | Both | RightOnly deriving Eq
@@ -119,6 +145,8 @@ main = do args <- getArgs
                              let targetTurns = Seq.fromList $ map (\(_,_,z) -> z) l
                              let turns0 = turns (Seq.replicate size 0) (U.enumFromN 0 size) knots
                              putStr $ unlines $ showKnots size knots
+                             putStrLn "---"
+                             putStr $ unlines $ showKnotsCompressed size knots
                              print turns0
                              let result0 = take 100 $ solve0 size (Seq.zipWith (-) targetTurns turns0) (zip3 knots (tail $ perms (U.enumFromN 0 size) knots) (repeat Both)) []
                              case result0 of
@@ -134,6 +162,8 @@ main = do args <- getArgs
                                                            print turns1
 -}
                                solution:_ -> do putStr $ unlines $ showKnots size solution
+                                                putStrLn "---"
+                                                putStr $ unlines $ showKnotsCompressed size solution
                                                 let turns1 = turns (Seq.replicate size 0) (U.enumFromN 0 size) solution
                                                 print turns1
             [] -> putStrLn "Usage: solver filename.txt"
