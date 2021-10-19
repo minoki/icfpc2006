@@ -9,6 +9,7 @@ import qualified Data.Sequence       as Seq
 import qualified Data.Vector.Unboxed as U
 import           System.Environment
 import           Text.Read
+import Data.Either
 
 parseSpec :: String -> Maybe (Int,Int,Int)
 parseSpec s = listToMaybe $ do (x,rest) <- reads s
@@ -42,7 +43,9 @@ perms :: Permutation -> Knots -> [Permutation]
 perms !p [] = [p]
 perms !p (x:xs) = p : perms (p U.// [(x,p U.! (x+1)),(x+1,p U.! x)]) xs
 
-solve0 :: Int -> Seq.Seq Int -> [(Int,Permutation)] -> Knots -> [Knots]
+data Way = None | Both | RightOnly deriving Eq
+
+solve0 :: Int -> Seq.Seq Int -> [(Int,Permutation,Way)] -> Knots -> [Knots]
 solve0 !width !target knots acc = goEven target 0 acc
   where
     goEven !target !i acc | i >= width - 1 = goOdd target 1 acc
@@ -54,29 +57,56 @@ solve0 !width !target knots acc = goEven target 0 acc
                                           t <- [m,m-1..0]
                                           goOdd (if t == 0 then target else Seq.adjust' (subtract t) i $ Seq.adjust' (subtract t) (i + 1) target) (i + 2) (replicate (2 * t) i ++ acc)
 
-solve1 :: Seq.Seq Int -> [(Int,Permutation)] -> Knots -> [Knots]
+adjust'' :: Int -> Int -> Seq.Seq Int -> Seq.Seq Int
+adjust'' 0 _ seq = seq
+adjust'' t i seq = Seq.adjust' (subtract t) i seq
+
+solve1 :: Seq.Seq Int -> [(Int,Permutation,Way)] -> Knots -> [Knots]
 solve1 !target knots acc
   | all (<= 0) target = if any (< 0) target then
                           error "invalid"
                         else
-                          return (reverse acc ++ map fst knots)
+                          return {- $ Right -} (reverse acc ++ map (\(x,_,_) -> x) knots)
   | otherwise = case knots of
-                  (!x,!perm):xs -> do let left target acc | x > 0 = do
-                                                              let !i0 = perm U.! (x-1)
-                                                                  !i1 = perm U.! x
-                                                                  !m = min (target `Seq.index` i0) (target `Seq.index` i1)
-                                                              t <- [m,m-1..0]
-                                                              right (if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target) (replicate (2 * t) (x-1) ++ acc)
-                                                          | otherwise = right target acc
-                                          right target acc | x < U.length perm - 2 = do
-                                                               let !i0 = perm U.! (x+1)
-                                                                   !i1 = perm U.! (x+2)
-                                                                   !m = min (target `Seq.index` i0) (target `Seq.index` i1)
-                                                               t <- [m,m-1..0]
-                                                               solve1 (if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target) xs (replicate (2 * t) (x+1) ++ acc)
-                                                           | otherwise = solve1 target xs acc
-                                      left target (x:acc)
-                  [] -> empty
+                  (x,perm,None):xs -> solve1 target xs (x:acc)
+                  (!x,!perm,way):xs -> do let left target acc | x > 0 = do
+                                                                  let !i0 = perm U.! (x-1)
+                                                                      !i1 = perm U.! x
+                                                                      !m = min (target `Seq.index` i0) (target `Seq.index` i1)
+                                                                  t <- [m,m-1..0]
+                                                                  pure (t, if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target) -- (replicate (2 * t) (x-1) ++ acc)
+                                                                  -- right (if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target) (replicate (2 * t) (x-1) ++ acc)
+                                                              | otherwise = pure (0, target) -- right target acc
+                                              right target acc | x < U.length perm - 2 = do
+                                                                   let !i0 = perm U.! (x+1)
+                                                                       !i1 = perm U.! (x+2)
+                                                                       !m = min (target `Seq.index` i0) (target `Seq.index` i1)
+                                                                   t <- [m,m-1..0]
+                                                                   pure (t, if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target)
+                                                                   -- solve1 (if t == 0 then target else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target) xs (replicate (2 * t) (x+1) ++ acc)
+                                                               | otherwise = pure (0, target) -- solve1 target xs acc
+                                          -- left target (x:acc)
+                                          (l,target') <- if way == RightOnly then [(0,target)] else left target acc
+                                          (r,target'') <- right target' acc
+                                          if l >= 1 && r >= 1 then do
+                                            {- let !i0 = perm U.! (x-1)
+!i1 = perm U.! (x+2)
+!m = min (target'' `Seq.index` i0) (target'' `Seq.index` i1)
+t <- [m,m-1..0] -}
+                                            let target''' = target'' -- if t == 0 then target'' else Seq.adjust' (subtract t) i0 $ Seq.adjust' (subtract t) i1 target''
+                                                p0 = perm U.// [(x+1,perm U.! (x+2)),(x+2,perm U.! (x+1))]
+                                                p1 = perm U.// [(x-1,perm U.! x),(x,perm U.! (x-1)),(x+1,perm U.! (x+2)),(x+2,perm U.! (x+1))]
+                                                p2 = perm U.// [(x-1,perm U.! x),(x,perm U.! (x-1))]
+                                            solve1 target''' ((x+1,p0,RightOnly) : (x-1,p1,Both) : (x+1,p2,None) : (x-1,perm,None) : xs) (replicate (2 * r - 2) (x+1) ++ replicate (2 * l - 2) (x-1) ++ (x:acc))
+                                            else if l >= 1 then do
+                                            let p1 = perm U.// [(x-1,perm U.! x),(x,perm U.! (x-1))]
+                                            solve1 target'' ((x-1,p1,Both) : (x-1,perm,None) : xs) (replicate (2 * l - 2) (x-1) ++ (x:acc))
+                                            else if r >= 1 then do
+                                            let p1 = perm U.// [(x+1,perm U.! (x+2)),(x+2,perm U.! (x+1))]
+                                            solve1 target'' ((x+1,p1,Both) : (x+1,perm,None) : xs) (replicate (2 * r - 2) (x+1) ++ (x:acc))
+                                            else do
+                                            solve1 target'' xs (replicate (2 * r) (x+1) ++ replicate (2 * l) (x-1) ++ (x:acc))
+                  [] -> empty -- return $ Left (target, reverse acc)
 
 main :: IO ()
 main = do args <- getArgs
@@ -90,8 +120,19 @@ main = do args <- getArgs
                              let turns0 = turns (Seq.replicate size 0) (U.enumFromN 0 size) knots
                              putStr $ unlines $ showKnots size knots
                              print turns0
-                             case solve0 size (Seq.zipWith (-) targetTurns turns0) (zip knots (tail $ perms (U.enumFromN 0 size) knots)) [] of
-                               [] -> putStrLn "Solution not found"
+                             let result0 = take 100 $ solve0 size (Seq.zipWith (-) targetTurns turns0) (zip3 knots (tail $ perms (U.enumFromN 0 size) knots) (repeat Both)) []
+                             case result0 of
+                               [] -> do putStrLn "No simple solution found"
+                               {-
+                                        putStr $ unlines $ showKnots size $ snd $ fromLeft (undefined,undefined) (result0 !! 0)
+                                        let result1 = do Left (target, knots) <- result0
+                                                         solve1 target (zip knots (tail $ perms (U.enumFromN 0 size) knots)) []
+                                        case [x | Right x <- result1] of
+                                          [] -> putStrLn "Solution not found"
+                                          solution:_ -> do putStr $ unlines $ showKnots size solution
+                                                           let turns1 = turns (Seq.replicate size 0) (U.enumFromN 0 size) solution
+                                                           print turns1
+-}
                                solution:_ -> do putStr $ unlines $ showKnots size solution
                                                 let turns1 = turns (Seq.replicate size 0) (U.enumFromN 0 size) solution
                                                 print turns1
