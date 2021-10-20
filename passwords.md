@@ -10,6 +10,7 @@
 | bbarker | Betty ? | plinko | Black Knots | gardener, CIRCS |
 <!-- | assistant-root | | h1dd3n | | | -->
 <!-- | associate-root | | @tth3 | | | -->
+<!-- | root | | c@Rn3g!e | | | -->
 
 ![](passwords.png)
 
