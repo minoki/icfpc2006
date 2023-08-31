@@ -16,6 +16,8 @@
     * Direct-threaded VM using tail calls.
 * [aarch64/run_jit.c](aarch64/run_jit.c)
     * JIT-compiling VM for AArch64.
+* [x86_64/run_jit.c](x86_64/run_jit.c)
+    * JIT-compiling VM for x86_64.
 
 参考：
 
