@@ -291,9 +291,19 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
         break;
     }
     assert(instr - instr_start <= MAX_BYTES_PER_INSTRUCTION);
-    while (instr < instr_start + 10) {
-        // TODO: Use longer NOP?
-        *instr++ = 0x90; // nop
+    if (instr - instr_start < 10) {
+        switch (10 - (instr - instr_start)) {
+        case 1: *instr++ = 0x90; break;
+        case 2: *instr++ = 0x66; *instr++ = 0x90; break;
+        case 3: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x00; break;
+        case 4: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x40; *instr++ = 0x00; break;
+        case 5: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x44; *instr++ = 0x00; *instr++ = 0x00; break;
+        case 6: *instr++ = 0x66; *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x44; *instr++ = 0x00; *instr++ = 0x00; break;
+        case 7: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x80; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; break;
+        case 8: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x84; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; break;
+        case 9: *instr++ = 0x66; *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x84; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x00; break;
+        case 10: *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x44; *instr++ = 0x00; *instr++ = 0x00; *instr++ = 0x0f; *instr++ = 0x1f; *instr++ = 0x44; *instr++ = 0x00; *instr++ = 0x00; break;
+        }
     }
     return instr;
 }
