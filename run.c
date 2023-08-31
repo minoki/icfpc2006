@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
                     fflush(stdout);
                     ch = getchar();
                 } else {
-                    ch = *presupplied_input++;
+                    ch = (unsigned char)*presupplied_input++;
                 }
                 if (ch == EOF) {
                     reg[c] = (uint32_t)(-1);

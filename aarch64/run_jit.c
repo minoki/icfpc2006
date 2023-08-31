@@ -125,7 +125,7 @@ static uint32_t um_getchar(void)
         fflush(stdout);
         ch = getchar();
     } else {
-        ch = *presupplied_input++;
+        ch = (unsigned char)*presupplied_input++;
     }
     if (ch == EOF) {
         return (uint32_t)(-1);
