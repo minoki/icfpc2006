@@ -28,26 +28,22 @@ static uint8_t *L_call_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_
 static bool verbose = false;
 static char *presupplied_input = NULL;
 static bool discard_initial_output = false;
+static bool *patched;
 
 static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
 {
-    if (origvalue == c) {
+    if (patched[b]) {
         return;
     }
-    uint8_t buf[10];
-    uint8_t *instr = buf;
+    patched[b] = true;
     uint8_t *target = jumptable[b];
+    uint8_t *instr = target;
     instr = mov_r32_imm32(instr, eax, b); // mov eax, <b>; 5 bytes
     instr = jmp_rel32(instr, L_epilogue - (target + 10)); // jmp L_epilogue; 5 bytes
-    assert(instr == buf + 10);
-    if (memcmp(target, buf, 10) == 0) {
-        // already patched
-        return;
-    }
+    assert(instr == target + 10);
     if (verbose) {
         fprintf(stderr, "<<<self modification>>>");
     }
-    memcpy(target, buf, 10);
     __builtin___clear_cache((void *)target, (void *)(target + 10)); // no-op; write barrier
 }
 struct alloc_result {
@@ -312,6 +308,10 @@ static void compile(struct array *arr0)
     if (program != NULL) {
         munmap(program, program_mem_capacity);
     }
+    if (patched != NULL) {
+        free(patched);
+    }
+    patched = calloc(arr0->length, sizeof(bool));
     size_t pagesize = getpagesize();
     size_t size = MAX_BYTES_PER_INSTRUCTION * (size_t)arr0->length + pagesize;
     size = (size + pagesize - 1) / pagesize * pagesize;
