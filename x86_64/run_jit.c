@@ -20,11 +20,11 @@ static struct array **arrays; // struct array *arrays[arraysize]
 static uint32_t *freelist = NULL, *freelist_end = NULL;
 static uint32_t freelist_capacity = 0;
 static void **jumptable; // void *jumptable[arr0size + 1]
-static void *program; // uintptr_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
+static void *program; // uint32_t (*)(struct array **arrays, void **jumptable, uint32_t registers[8], uint32_t initial_pc)
 static void *program_end;
 static size_t program_mem_capacity;
 static uint8_t *L_epilogue;
-static uint8_t *L_call_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar;
+static uint8_t *L_call_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar, um_getchar
 static bool verbose = false;
 static char *presupplied_input = NULL;
 static bool discard_initial_output = false;
@@ -133,7 +133,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             }
             break;
         }
-#if 1
     case 1: /* Array Index */
         {
             // <= 10 bytes
@@ -163,8 +162,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             /* L_next: */
             break;
         }
-#endif
-#if 1
     case 3: /* Addition */
         {
             // <= 6 bytes
@@ -174,8 +171,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = lea_r32(instr, A, B, SCALE_BY_1, C, 0); // lea A, [B + C]; <= 6 bytes
             break;
         }
-#endif
-#if 1
     case 4: /* Multiplication */
         {
             // <= 9 bytes
@@ -187,7 +182,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = mov_r32_r32(instr, A, eax); // mov A, eax; <= 3 bytes
             break;
         }
-#endif
     case 5: /* Division */
         {
             // <= 12 bytes
@@ -201,7 +195,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = mov_r32_r32(instr, A, eax); // mov A, eax; <= 3 bytes
             break;
         }
-#if 1
     case 6: /* Not-And */
         {
             // <= 9 bytes
@@ -230,8 +223,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             }
             break;
         }
-#endif
-#if 1
     case 8: /* Allocation */
         {
             // <= 14 bytes
@@ -269,8 +260,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = mov_r32_r32(instr, C, eax); // mov C, eax; <= 3 bytes
             break;
         }
-#endif
-#if 1
     case 12: /* Load Program */
         {
             // <= 20 bytes
@@ -284,7 +273,6 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = jmp_rel32_ptr(instr, L_epilogue); // jmp L_epilogue; 5 bytes
             break;
         }
-#endif
     case 13: /* Orthography */
         {
             // <= 6 bytes
