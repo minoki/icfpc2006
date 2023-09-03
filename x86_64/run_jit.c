@@ -30,7 +30,7 @@ static char *presupplied_input = NULL;
 static bool discard_initial_output = false;
 static bool *patched;
 
-static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
+static void um_modify_0(uint32_t b, uint32_t c)
 {
     if (patched[b]) {
         return;
@@ -110,7 +110,7 @@ static uint32_t um_getchar(void)
 static const enum reg64 Rarrays = rbx;
 static const enum reg64 Rjumptable = rcx;
 static const enum reg32 REG[8] = {r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d};
-static const size_t MAX_BYTES_PER_INSTRUCTION = 31;
+static const size_t MAX_BYTES_PER_INSTRUCTION = 26;
 static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
 {
     uint8_t *instr_start = instr;
@@ -141,12 +141,11 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
         }
     case 2: /* Array Amendment */
         {
-            // <= 31 bytes
+            // <= 26 bytes
             enum reg32 A = REG[(op >> 6) & 7];
             enum reg32 B = REG[(op >> 3) & 7];
             enum reg32 C = REG[op & 7];
             instr = mov_r64_qword_ptr(instr, rax, Rarrays, SCALE_BY_8, (enum reg64)A, 0); // mov rax, qword ptr [Rarrays + 8 * A]; <= 5 bytes
-            instr = mov_r32_dword_ptr(instr, edx, rax, SCALE_BY_4, (enum reg64)B, 4); // mov edx, dword ptr [rax + 4 * B + 4]; <= 5 bytes
             instr = mov_dword_ptr_r32(instr, rax, SCALE_BY_4, (enum reg64)B, 4, C); // mov dword ptr [rax + 4 * B + 4], C; <= 5 bytes
             instr = test_r32_r32(instr, A, A); // test A, A; <= 3 bytes
             uint8_t *instr_jne = instr;
@@ -573,9 +572,8 @@ int main(int argc, char *argv[])
                 if (i == 0) {
                     uint32_t vb = registers[b];
                     uint32_t vc = registers[c];
-                    uint32_t origvalue = ai->data[vb];
                     ai->data[vb] = vc;
-                    um_modify_0(vb, vc, origvalue);
+                    um_modify_0(vb, vc);
                 } else {
                     ai->data[registers[b]] = registers[c];
                 }
