@@ -5,9 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(_WIN64)
+#include <windows.h>
+#else
 #include <sys/errno.h>
 #include <sys/mman.h> // mmap, mprotect, munmap
 #include <unistd.h> // getpagesize
+#endif
 #include "x86asm.h"
 
 struct array {
@@ -44,7 +48,11 @@ static void um_modify_0(uint32_t b, uint32_t c)
     if (verbose) {
         fprintf(stderr, "<<<self modification>>>");
     }
-    __builtin___clear_cache((void *)target, (void *)(target + 10)); // no-op; write barrier
+#if defined(__GNUC__)
+    __builtin___clear_cache((void *)target, (void *)(target + 10)); // no-op; memory barrier
+#else
+    FlushInstructionCache(GetCurrentProcess(), target, 10);
+#endif
 }
 struct alloc_result {
     uint32_t identifier;
@@ -107,9 +115,39 @@ static uint32_t um_getchar(void)
         return (uint32_t)ch;
     }
 }
+#if defined(_WIN64)
+/*
+ * rbx (callee-save): arrays
+ * r9 (caller-save): jumptable
+ * esi (callee-save): VM's R0
+ * edi (callee-save): VM's R1
+ * r10d (caller-save): VM's R2
+ * r11d (caller-save): VM's R3
+ * r12d (callee-save): VM's R4
+ * r13d (callee-save): VM's R5
+ * r14d (callee-save): VM's R6
+ * r15d (callee-save): VM's R7
+ */
+static const enum reg64 Rarrays = rbx;
+static const enum reg64 Rjumptable = r9;
+static const enum reg32 REG[8] = {esi, edi, r10d, r11d, r12d, r13d, r14d, r15d};
+#else
+/*
+ * rbx (callee-save): arrays
+ * rcx (caller-save): jumptable
+ * r8d (caller-save): VM's R0
+ * r9d (caller-save): VM's R1
+ * r10d (caller-save): VM's R2
+ * r11d (caller-save): VM's R3
+ * r12d (callee-save): VM's R4
+ * r13d (callee-save): VM's R5
+ * r14d (callee-save): VM's R6
+ * r15d (callee-save): VM's R7
+ */
 static const enum reg64 Rarrays = rbx;
 static const enum reg64 Rjumptable = rcx;
 static const enum reg32 REG[8] = {r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d};
+#endif
 static const size_t MAX_BYTES_PER_INSTRUCTION = 26;
 static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
 {
@@ -150,8 +188,13 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
             instr = test_r32_r32(instr, A, A); // test A, A; <= 3 bytes
             uint8_t *instr_jne = instr;
             instr += 2; // jne L_next (filled later); 2 bytes
+#if defined(_WIN64)
+            instr = mov_r32_r32(instr, ecx, B); // mov ecx, B; <= 3 bytes
+            instr = mov_r32_r32(instr, edx, C); // mov edx, C; <= 3 bytes
+#else
             instr = mov_r32_r32(instr, edi, B); // mov edi, B; <= 3 bytes
             instr = mov_r32_r32(instr, esi, C); // mov esi, C; <= 3 bytes
+#endif
             instr = call_rel32_ptr(instr, L_call_fn[0]); // call um_modify_0; 5 bytes
             jne_rel8(instr_jne, instr - instr_jne - 2); // jne L_next
             /* L_next: */
@@ -220,21 +263,35 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
         }
     case 8: /* Allocation */
         {
-            // <= 14 bytes
             enum reg32 B = REG[(op >> 3) & 7];
             enum reg32 C = REG[op & 7];
+#if defined(_WIN64)
+            // <= 19 bytes
+            instr = mov_r64_r64(instr, rcx, rsp); // mov rcx, rsp; <= 3 bytes
+            instr = mov_r32_r32(instr, edx, C); // mov edx, C; <= 3 bytes
+            instr = call_rel32_ptr(instr, L_call_fn[1]); // call um_alloc; 5 bytes
+            // pointer to result: rax
+            instr = mov_r32_dword_ptr_rsp(instr, B, 0); // mov B, dword ptr [rsp]; <= 4 bytes
+            instr = mov_r64_qword_ptr_rsp(instr, Rarrays, 8); // mov Rarrays, qword ptr [rsp + 8]; <= 4 bytes
+#else
+            // <= 14 bytes
             instr = mov_r32_r32(instr, edi, C); // mov edi, C; <= 3 bytes
             instr = call_rel32_ptr(instr, L_call_fn[1]); // call um_alloc; 5 bytes
             // results: eax, rdx
             instr = mov_r32_r32(instr, B, eax); // mov B, eax; <= 3 bytes
             instr = mov_r64_r64(instr, Rarrays, rdx); // mov Rarrays, rdx; <= 3 bytes
+#endif
             break;
         }
     case 9: /* Abandonment */
         {
             // <= 8 bytes
             enum reg32 C = REG[op & 7];
+#if defined(_WIN64)
+            instr = mov_r32_r32(instr, ecx, C); // mov ecx, C; <= 3 bytes
+#else
             instr = mov_r32_r32(instr, edi, C); // mov edi, C; <= 3 bytes
+#endif
             instr = call_rel32_ptr(instr, L_call_fn[2]); // call um_free; 5 bytes
             break;
         }
@@ -242,7 +299,11 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
         {
             // <= 8 bytes
             enum reg32 C = REG[op & 7];
+#if defined(_WIN64)
+            instr = mov_r32_r32(instr, ecx, C); // mov ecx, C; <= 3 bytes
+#else
             instr = mov_r32_r32(instr, edi, C); // mov edi, C; <= 3 bytes
+#endif
             instr = call_rel32_ptr(instr, L_call_fn[3]); // call um_putchar; 5 bytes
             break;
         }
@@ -305,15 +366,37 @@ static uint8_t *write_instr(uint8_t *instr, uint32_t index, uint32_t op)
 static void compile(struct array *arr0)
 {
     if (program != NULL) {
+#if defined(_WIN64)
+        VirtualFree(program, 0, MEM_RELEASE);
+#else
         munmap(program, program_mem_capacity);
+#endif
     }
     if (patched != NULL) {
         free(patched);
     }
     patched = calloc(arr0->length, sizeof(bool));
+#if defined(_WIN64)
+    size_t pagesize;
+    {
+        SYSTEM_INFO si;
+        GetSystemInfo(&si);
+        pagesize = si.dwPageSize;
+    }
+#else
     size_t pagesize = getpagesize();
+#endif
     size_t size = MAX_BYTES_PER_INSTRUCTION * (size_t)arr0->length + pagesize;
     size = (size + pagesize - 1) / pagesize * pagesize;
+#if defined(_WIN64)
+    void *mem = VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (mem == NULL) {
+        DWORD e = GetLastError();
+        fflush(stdout);
+        fprintf(stderr, "<<<VirtualAlloc failed with error = %lx>>>\n", (unsigned long)e);
+        abort();
+    }
+#else
     void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
     if (mem == MAP_FAILED) {
         int e = errno;
@@ -321,26 +404,41 @@ static void compile(struct array *arr0)
         fprintf(stderr, "<<<mmap failed with errno = %d (%s)>>>\n", e, strerror(e));
         abort();
     }
+#endif
     program = mem;
     program_mem_capacity = size;
     jumptable = realloc(jumptable, sizeof(void *) * ((size_t)arr0->length + 1));
     assert(jumptable != NULL);
     uint8_t *instr = mem;
-    /*
-     * rbx (callee-save): arrays
-     * rcx (caller-save): jumptable
-     * r8d (caller-save): VM's R0
-     * r9d (caller-save): VM's R1
-     * r10d (caller-save): VM's R2
-     * r11d (caller-save): VM's R3
-     * r12d (callee-save): VM's R4
-     * r13d (callee-save): VM's R5
-     * r14d (callee-save): VM's R6
-     * r15d (callee-save): VM's R7
-     */
 
     /* Prologue */
     static const uint8_t prologue[] = {
+#if defined(_WIN64)
+        0x55,                         // push rbp
+        0x48, 0x89, 0xe5,             // mov rbp, rsp
+        0x41, 0x57,                   // push r15
+        0x41, 0x56,                   // push r14
+        0x41, 0x55,                   // push r13
+        0x41, 0x54,                   // push r12
+        0x56,                         // push rsi
+        0x57,                         // push rdi
+        0x53,                         // push rbx
+        0x48, 0x83, 0xec, 0x30,       // sub rsp, 0x30
+        0x48, 0x89, 0xcb,             // mov rbx, rcx
+        0x41, 0x8b, 0x30,             // mov esi, dword ptr [r8]
+        0x41, 0x8b, 0x78, 0x04,       // mov edi, dword ptr [r8 + 0x4]
+        0x45, 0x8b, 0x50, 0x08,       // mov r10d, dword ptr [r8 + 0x8]
+        0x45, 0x8b, 0x58, 0x0c,       // mov r11d, dword ptr [r8 + 0xc]
+        0x45, 0x8b, 0x60, 0x10,       // mov r12d, dword ptr [r8 + 0x10]
+        0x45, 0x8b, 0x68, 0x14,       // mov r13d, dword ptr [r8 + 0x14]
+        0x45, 0x8b, 0x70, 0x18,       // mov r14d, dword ptr [r8 + 0x18]
+        0x45, 0x8b, 0x78, 0x1c,       // mov r15d, dword ptr [r8 + 0x1c]
+        0x4c, 0x89, 0x44, 0x24, 0x20, // mov qword ptr [rsp + 0x20], r8
+        0x48, 0x89, 0x54, 0x24, 0x18, // mov qword ptr [rsp + 0x18], rdx
+        0x4a, 0x8b, 0x04, 0xca,       // mov rax, qword ptr [rdx + 8*r9]
+        0x49, 0x89, 0xd1,             // mov r9, rdx
+        0xff, 0xe0,                   // jmp rax
+#else
         0x55,                         // push rbp
         0x48, 0x89, 0xe5,             // mov  rbp, rsp
         0x41, 0x57,                   // push r15
@@ -363,6 +461,7 @@ static void compile(struct array *arr0)
         0x48, 0x8b, 0x04, 0xce,       // mov  rax, qword ptr [rsi + 8*rcx] # jumptable[initial_pc]
         0x48, 0x89, 0xf1,             // mov  rcx, rsi
         0xff, 0xe0,                   // jmp  rax
+#endif
     };
     memcpy(instr, prologue, sizeof(prologue));
     instr += sizeof(prologue);
@@ -371,6 +470,27 @@ static void compile(struct array *arr0)
     /* L_epilogue: */
     L_epilogue = instr;
     static const uint8_t epilogue[] = {
+#if defined(_WIN64)
+        0x4c, 0x8b, 0x44, 0x24, 0x20, // mov r8, qword ptr [rsp + 0x20]
+        0x41, 0x89, 0x30,             // mov dword ptr [r8], esi
+        0x41, 0x89, 0x78, 0x04,       // mov dword ptr [r8 + 0x4], edi
+        0x45, 0x89, 0x50, 0x08,       // mov dword ptr [r8 + 0x8], r10d
+        0x45, 0x89, 0x58, 0x0c,       // mov dword ptr [r8 + 0xc], r11d
+        0x45, 0x89, 0x60, 0x10,       // mov dword ptr [r8 + 0x10], r12d
+        0x45, 0x89, 0x68, 0x14,       // mov dword ptr [r8 + 0x14], r13d
+        0x45, 0x89, 0x70, 0x18,       // mov dword ptr [r8 + 0x18], r14d
+        0x45, 0x89, 0x78, 0x1c,       // mov dword ptr [r8 + 0x1c], r15d
+        0x48, 0x83, 0xc4, 0x30,       // add rsp, 0x30
+        0x5b,                         // pop rbx
+        0x5f,                         // pop rdi
+        0x5e,                         // pop rsi
+        0x41, 0x5c,                   // pop r12
+        0x41, 0x5d,                   // pop r13
+        0x41, 0x5e,                   // pop r14
+        0x41, 0x5f,                   // pop r15
+        0x5d,                         // pop rbp
+        0xc3,                         // ret
+#else
         0x48, 0x8b, 0x54, 0x24, 0x18, // mov rdx, qword ptr [rsp + 24]
         0x44, 0x89, 0x02,             // mov dword ptr [rdx], r8d
         0x44, 0x89, 0x4a, 0x04,       // mov dword ptr [rdx + 4], r9d
@@ -388,6 +508,7 @@ static void compile(struct array *arr0)
         0x41, 0x5f,                   // pop r15
         0x5d,                         // pop rbp
         0xc3,                         // ret
+#endif
     };
     memcpy(instr, epilogue, sizeof(epilogue));
     instr += sizeof(epilogue);
@@ -397,6 +518,26 @@ static void compile(struct array *arr0)
         uintptr_t addrs[5] = {(uintptr_t)um_modify_0, (uintptr_t)um_alloc, (uintptr_t)um_free, (uintptr_t)um_putchar, (uintptr_t)um_getchar};
         for (int i = 0; i < 5; ++i) {
             L_call_fn[i] = instr;
+#if defined(_WIN64)
+            static const uint8_t code1[] = {
+                0x44, 0x89, 0x54, 0x24, 0x1c, // mov dword ptr [rsp + 0x1c], r10d
+                0x44, 0x89, 0x5c, 0x24, 0x18, // mov dword ptr [rsp + 0x18], r11d
+                0x48, 0x83, 0xec, 0x28,       // sub rsp, 0x28
+            };
+            memcpy(instr, code1, sizeof(code1));
+            instr += sizeof(code1);
+            instr = mov_r64_imm64(instr, r10, addrs[i]); // mov r10, <absolute address>
+            static const uint8_t code2[] = {
+                0x41, 0xff, 0xd2,             // call r10
+                0x48, 0x83, 0xc4, 0x28,       // add rsp, 0x28
+                0x44, 0x8b, 0x5c, 0x24, 0x18, // mov r11d, dword ptr [rsp + 0x18]
+                0x44, 0x8b, 0x54, 0x24, 0x1c, // mov r10d, dword ptr [rsp + 0x1c]
+                0x4c, 0x8b, 0x4c, 0x24, 0x20, // mov r9, qword ptr [rsp + 0x20]
+                0xc3,                         // ret
+            };
+            memcpy(instr, code2, sizeof(code2));
+            instr += sizeof(code2);
+#else
             static const uint8_t code1[] = {
                 0x48, 0x83, 0xec, 0x08,       // sub rsp, 8
                 0x44, 0x89, 0x44, 0x24, 0x10, // mov dword ptr [rsp + 16], r8d
@@ -419,6 +560,7 @@ static void compile(struct array *arr0)
             };
             memcpy(instr, code2, sizeof(code2));
             instr += sizeof(code2);
+#endif
         }
     }
 
@@ -432,7 +574,11 @@ static void compile(struct array *arr0)
         *instr++ = 0x0f; *instr++ = 0x0b; /* UD2 */
     }
     program_end = instr;
+#if defined(__GNUC__)
     __builtin___clear_cache(mem, (void *)instr);
+#else
+    FlushInstructionCache(GetCurrentProcess(), mem, instr - mem);
+#endif
 }
 
 static int usage(const char *argv0)

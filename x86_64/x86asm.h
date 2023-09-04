@@ -154,6 +154,29 @@ static inline uint8_t *mov_r32_dword_ptr(uint8_t *instr, enum reg32 dst, enum re
     return instr;
 }
 
+static inline uint8_t *mov_r32_dword_ptr_rsp(uint8_t *instr, enum reg32 dst, int32_t disp)
+{
+    // MOV r32, r/m32;  m=[rsp + disp]
+    if (dst > edi) {
+        *instr++ = REX(dst >> 3, 0, 0);
+    }
+    *instr++ = 0x8b;
+    if (disp == 0) {
+        *instr++ = ModRM(0, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
+    } else if (-128 <= disp && disp <= 127) {
+        *instr++ = ModRM(1, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
+        *instr++ = disp & 0xff;
+    } else {
+        *instr++ = ModRM(2, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
+        memcpy(instr, &disp, 4);
+        instr += 4;
+    }
+    return instr;
+}
+
 static inline uint8_t *mov_r64_qword_ptr(uint8_t *instr, enum reg64 dst, enum reg64 base, enum address_scale scale, enum reg64 index, int32_t disp)
 {
     // MOV r64, r/m64;  m=[base + scale*index + disp]
@@ -171,6 +194,27 @@ static inline uint8_t *mov_r64_qword_ptr(uint8_t *instr, enum reg64 dst, enum re
     } else {
         *instr++ = ModRM(2, dst & 7, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
+        memcpy(instr, &disp, 4);
+        instr += 4;
+    }
+    return instr;
+}
+
+static inline uint8_t *mov_r64_qword_ptr_rsp(uint8_t *instr, enum reg64 dst, int32_t disp)
+{
+    // MOV r64, r/m64;  m=[rsp + disp]
+    *instr++ = REX_W(dst >> 3, 0, 0);
+    *instr++ = 0x8b;
+    if (disp == 0) {
+        *instr++ = ModRM(0, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
+    } else if (-128 <= disp && disp <= 127) {
+        *instr++ = ModRM(1, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
+        *instr++ = disp & 0xff;
+    } else {
+        *instr++ = ModRM(2, dst & 7, /* Use SIB */ 4);
+        *instr++ = SIB(0, 4, rsp);
         memcpy(instr, &disp, 4);
         instr += 4;
     }
