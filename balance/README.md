@@ -1,3 +1,17 @@
+* [x] stop (10 / 10)
+* [x] stop1 (10 / 10)
+* [x] stop127 (20 / 20)
+* [x] stop128 (15 / 15)
+* [ ] copymem (0 / 200)
+* [ ] copyreg (0 / 200)
+* [x] swapmem (27 / 40)
+* [x] swapreg (50 / 50)
+* [x] swapreg2 (50 / 50)
+* [x] addmem (31 / 40)
+* [ ] addmem2 (0 / 50)
+* [ ] multmem (0 / 200)
+* [ ] fillmem (0 / 200)
+* [ ] clearreg (0 / 100)
 
 # stop
 
