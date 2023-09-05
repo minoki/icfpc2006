@@ -60,6 +60,18 @@ BLNCE.S28=15@999999|cc21c682563623f9df8d1bba37e5ee6
 balance / stop127
 BLNCE.S27=20@999999|a7f8d6a06903f3a8956d0f958a50a33
 
+balance / swapreg
+BLNCE.SWR=50@999999|a656011e0672f5dc095ca3579fc6515
+
+balance / swapreg2
+BLNCE.SR2=50@999999|af9ab43ee4454e275ff430ed2f629f0
+
+balance / addmem
+BLNCE.AMM=31@999999|aec0a1b2c6a61107a781ba15fe2691e
+
+balance / swapmem
+BLNCE.SWM=27@999999|8b8927e23a27f3acc84a0a9c4c06f74
+
 2d / mult / program area=1288
 CIRCS.MUL=37@999999|98f350a533917500cdfdf11261bb877
 program area=1144

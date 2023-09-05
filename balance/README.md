@@ -60,3 +60,103 @@ SCIENCE 0
 STOP
 certify stop128 stop128.bal
 ```
+
+# swapreg
+
+```
+PHYSICS (-16)
+PHYSICS 3
+SCIENCE 0
+```
+
+```
+/bin/umodem swapreg.bal STOP
+70
+63
+00
+STOP
+certify swapreg swapreg.bal
+```
+
+# swapreg2
+
+```
+PHYSICS 2
+PHYSICS (-13)
+PHYSICS 1
+PHYSICS 13
+SCIENCE 0
+```
+
+```
+/bin/umodem swapreg2.bal STOP
+62
+73
+61
+6d
+00
+STOP
+certify swapreg2 swapreg2.bal
+```
+
+# addmem
+
+```
+PHYSICS 1
+PHYSICS (-3)
+PHYSICS (-1)
+PHYSICS 1
+MATH 2 0 2
+SCIENCE 0
+```
+
+```
+/bin/umodem addmem.bal STOP
+61
+7d
+7f
+61
+22
+00
+STOP
+certify addmem addmem.bal
+```
+
+score: 31
+
+# swapmem
+
+```
+PHYSICS 1
+PHYSICS (-13)
+PHYSICS (-1)
+PHYSICS (-4)
+LOGIC 0 1 2
+PHYSICS (-15)
+PHYSICS (-2)
+LOGIC 1 0 1
+PHYSICS (-16)
+PHYSICS (-1)
+LOGIC 0 0 2
+SCIENCE 0
+```
+
+```
+/bin/umodem swapmem.bal STOP
+61
+73
+7f
+7c
+46
+71
+7e
+51
+70
+7f
+42
+00
+STOP
+certify swapmem swapmem.bal
+```
+
+score: 27
