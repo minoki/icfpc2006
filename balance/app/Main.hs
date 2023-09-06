@@ -19,7 +19,10 @@ import Data.Maybe (Maybe(Nothing))
 import Data.Foldable
 import qualified Data.List as List
 
-newtype Modular (n :: Nat) = Modular { getModular :: Word } deriving (Eq,Show)
+newtype Modular (n :: Nat) = Modular { getModular :: Word } deriving (Eq)
+
+instance Show (Modular n) where
+  showsPrec p (Modular x) = showsPrec p x
 
 instance KnownNat n => Num (Modular n) where
   Modular x + Modular y = Modular ((x + y) `rem` m)
@@ -44,6 +47,11 @@ data Instruction = MATH { dest :: !(Modular 2), src1 :: !(Modular 4), src2 :: !(
                  | BAIL
                  deriving (Eq,Show)
 
+allMath, allLogic, allPhysics :: [Instruction]
+allMath = [MATH d s1 s2 | d <- [0, 1], s1 <- [0, 1, 2, 3], s2 <- [0, 1, 2, 3]]
+allLogic = [LOGIC d s1 s2 | d <- [0, 1], s1 <- [0, 1, 2, 3], s2 <- [0, 1, 2, 3]]
+allPhysics = [PHYSICS imm | imm <- [-16..15]]
+
 encodeInstruction :: Instruction -> Word8
 encodeInstruction (MATH { dest, src1, src2 }) = 0x20 .|. (fromIntegral $ getModular dest `shiftL` 4) .|. (fromIntegral $ getModular src1 `shiftL` 2) .|. fromIntegral (getModular src2)
 encodeInstruction (LOGIC { dest, src1, src2 }) = 0x40 .|. (fromIntegral $ getModular dest `shiftL` 4) .|. (fromIntegral $ getModular src1 `shiftL` 2) .|. fromIntegral (getModular src2)
@@ -67,13 +75,13 @@ data Result = Continue | Halt | Bail
 
 next :: Instruction -> State -> (Result,State)
 next (MATH { dest, src1, src2 }) state@(State { memory, ip, is, sR, dR })
-  = let memory' = memory U.// [(fromIntegral $ dR U.! getModularAsInt (dest + 1), (sR U.! getModularAsInt (src1 + 1)) - (sR U.! getModularAsInt (src2 + 1)))
-                              ,(fromIntegral $ dR U.! getModularAsInt dest, (sR U.! getModularAsInt src1) + (sR U.! getModularAsInt src2))
+  = let memory' = memory U.// [(fromIntegral $ dR U.! getModularAsInt (dest + 1), memory U.! fromIntegral (sR U.! getModularAsInt (src1 + 1)) - memory U.! fromIntegral (sR U.! getModularAsInt (src2 + 1)))
+                              ,(fromIntegral $ dR U.! getModularAsInt dest, memory U.! fromIntegral (sR U.! getModularAsInt src1) + memory U.! fromIntegral (sR U.! getModularAsInt src2))
                               ]
     in (Continue, state { memory = memory', ip = nextIP state, is = is, sR = sR, dR = dR })
 next (LOGIC { dest, src1, src2 }) state@(State { memory, ip, is, sR, dR })
-  = let memory' = memory U.// [(fromIntegral $ dR U.! getModularAsInt (dest + 1), (sR U.! getModularAsInt (src1 + 1)) `xor` (sR U.! getModularAsInt (src2 + 1)))
-                              ,(fromIntegral $ dR U.! getModularAsInt dest, (sR U.! getModularAsInt src1) .&. (sR U.! getModularAsInt src2))
+  = let memory' = memory U.// [(fromIntegral $ dR U.! getModularAsInt (dest + 1), memory U.! fromIntegral (sR U.! getModularAsInt (src1 + 1)) `xor` memory U.! fromIntegral (sR U.! getModularAsInt (src2 + 1)))
+                              ,(fromIntegral $ dR U.! getModularAsInt dest, memory U.! fromIntegral (sR U.! getModularAsInt src1) .&. memory U.! fromIntegral (sR U.! getModularAsInt src2))
                               ]
     in (Continue, state { memory = memory', ip = nextIP state, is = is, sR = sR, dR = dR })
 next (SCIENCE { imm }) state@(State { memory, ip, is, sR, dR })
@@ -119,6 +127,18 @@ testCopyMem code_ = test 1 -- && test 7 && test 10 && test 77 && test 255
                  in case run 1000 state of
                       Nothing -> False
                       Just state' -> U.any (== a) (sR state' <> dR state')
+
+testSwapMem :: [Instruction] -> Bool
+testSwapMem code_ = let state = State { code = V.fromList code_
+                                      , memory = U.replicate 256 0 U.// [(i, 2^i) | i <- [0..7]]
+                                      , ip = 0
+                                      , is = 1
+                                      , sR = U.fromList [0, 1, 2, 3]
+                                      , dR = U.fromList [4, 5]
+                                      }
+                    in case run 100 state of
+                          Nothing -> False
+                          Just state' -> List.any (\(i,j) -> memory state' U.! i == 2^j && memory state' U.! j == 2^i) [(i,j) | i <- [0..6], j <- [i+1..7]]
 
 oneStepPhysics :: (U.Vector Word8, U.Vector Word8) -> Int -> (U.Vector Word8, U.Vector Word8)
 oneStepPhysics (!sR, !dR) !imm
@@ -222,6 +242,7 @@ main = do -- STOP
 
           -- swapmem
           -- print $ searchPhysics 5 0 (\sR dR -> U.any (== 0) dR && U.any (== 0) sR && U.any (== 1) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
+          {-
           let (sR, dR) = foldl' oneStepPhysics (U.fromList [0, 1, 2, 3], U.fromList [4, 5]) [1,-13,-1,-4]
           print (sR, dR)
           print $ searchPhysics 5 0 (\sR dR -> U.any (== 1) dR && U.all (/= 0) dR && U.any (== 0) sR && U.any (== 1) sR) sR dR
@@ -230,6 +251,65 @@ main = do -- STOP
           print $ searchPhysics 6 0 (\sR dR -> U.any (== 0) dR && U.all (/= 1) dR &&U.any (== 0) sR && U.any (== 1) sR) sR' dR'
           let (sR'', dR'') = foldl' oneStepPhysics (sR', dR') [-16,-1]
           print (sR'', dR'')
+          -}
+          {-
+          print $ searchPhysics 5 0 (\sR dR -> U.any (== 1) dR && U.any (== 1) sR && U.any (== 2) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
+          let (sR, dR) = foldl' oneStepPhysics (U.fromList [0, 1, 2, 3], U.fromList [4, 5]) [1]
+          print (sR, dR)
+          print $ searchPhysics 5 0 (\sR dR -> U.any (== 2) dR && U.all (/= 1) dR && U.any (== 1) sR && U.any (== 2) sR) sR dR
+          let (sR', dR') = foldl' oneStepPhysics (sR, dR) [-3]
+          print (sR', dR')
+          print $ searchPhysics 5 0 (\sR dR -> U.any (== 1) dR && U.all (/= 2) dR && U.any (== 1) sR && U.any (== 2) sR) sR' dR'
+          let (sR'', dR'') = foldl' oneStepPhysics (sR', dR') [-15,-1]
+          print (sR'', dR'')
+          -}
+          {-
+          let srcSet = [Modular i | i <- [0..3]]
+          let instrs = case [ c
+                            | {- imm1 <- [-16..15]
+                            , -} imm2 <- [-16..15]
+                            , imm3 <- [-16..15]
+                            , dst1 <- [Modular 0, Modular 1]
+                            , dst2 <- [Modular 0, Modular 1]
+                            , dst3 <- [Modular 0, Modular 1]
+                            , src1_1 <- srcSet
+                            , src2_1 <- srcSet
+                            , src1_2 <- srcSet
+                            , src2_2 <- srcSet
+                            , src1_3 <- srcSet
+                            , src2_3 <- srcSet
+                            , let c = [{-PHYSICS imm1,-} LOGIC dst1 src1_1 src2_1, PHYSICS imm2, LOGIC dst2 src1_2 src2_2, PHYSICS imm3, LOGIC dst3 src1_3 src2_3, SCIENCE 0]
+                            , testSwapMem c
+                            ] of
+                         [] -> Nothing
+                         c : _ -> Just c
+          print instrs
+          -}
+          let instrs = case [ c
+                            | i0 <- allMath ++ allLogic ++ allPhysics
+                            , i1 <- allMath ++ allLogic ++ allPhysics
+                            , i2 <- allMath ++ allLogic ++ allPhysics
+                            -- , i3 <- allMath ++ allLogic ++ allPhysics
+                            , let c = [i0, i1, i2, SCIENCE 0]
+                            , testSwapMem c
+                            ] of
+                         [] -> Nothing
+                         c : _ -> Just c
+          print instrs
+
+          {-
+          -- clearreg
+          -- print $ searchPhysics 7 0 (\sR dR -> U.all (== 0) dR && U.all (== 0) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
+          let r0 = (U.fromList [0, 1, 2, 3], U.fromList [4, 5])
+          print $ foldl' oneStepPhysics r0 [-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1,-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1,-1,-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1,-1,-1,-1,-1]
+          print $ foldl' oneStepPhysics r0 [-1,-1,-1,-1,-1,-1,-1,-1]
+          -}
 
 {-
           -- copymem

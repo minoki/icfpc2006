@@ -4,7 +4,7 @@
 * [x] stop128 (15 / 15)
 * [ ] copymem (0 / 200)
 * [ ] copyreg (0 / 200)
-* [x] swapmem (27 / 40)
+* [x] swapmem (40 / 40)
 * [x] swapreg (50 / 50)
 * [x] swapreg2 (50 / 50)
 * [x] addmem (40 / 40)
@@ -196,3 +196,36 @@ certify swapmem swapmem.bal
 ```
 
 score: 27
+
+```
+PHYSICS 1
+LOGIC 0 0 1
+PHYSICS (-3)
+LOGIC 0 0 2
+PHYSICS (-15)
+PHYSICS (-1)
+LOGIC 0 1 3
+SCIENCE 0
+```
+
+score: 33
+
+```
+LOGIC 1 2 3
+PHYSICS (-15)
+LOGIC 1 1 3
+PHYSICS (-1)
+LOGIC 0 0 1
+SCIENCE 0
+```
+
+score: 36
+
+```
+MATH 0 1 1
+PHYSICS (-16)
+PHYSICS (-2)
+SCIENCE 0
+```
+
+score: 40
