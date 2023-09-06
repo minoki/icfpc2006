@@ -7,7 +7,7 @@
 * [x] swapmem (27 / 40)
 * [x] swapreg (50 / 50)
 * [x] swapreg2 (50 / 50)
-* [x] addmem (31 / 40)
+* [x] addmem (40 / 40)
 * [x] addmem2 (48 / 50)
 * [ ] multmem (0 / 200)
 * [ ] fillmem (0 / 200)
@@ -138,6 +138,27 @@ certify addmem2 addmem.bal
 ```
 
 score: 31 (addmem), 48 (addmem2)
+
+Shorter code for addmem:
+
+```
+PHYSICS 2
+PHYSICS (-4)
+MATH 0 0 3
+SCIENCE 0
+```
+
+```
+/bin/umodem addmem.bal STOP
+62
+7c
+23
+00
+STOP
+certify addmem addmem.bal
+```
+
+score: 40 (addmem)
 
 # swapmem
 

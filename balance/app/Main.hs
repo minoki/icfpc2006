@@ -144,6 +144,17 @@ searchPhysics maxLen i f sR dR
                      [] -> searchPhysics maxLen (i + 1) f sR dR
                      r : _ -> Just r
 
+searchPhysics' :: Int -> Int -> (U.Vector Word8 -> U.Vector Word8 -> Bool) -> U.Vector Word8 -> U.Vector Word8 -> Maybe ([Int], U.Vector Word8, U.Vector Word8)
+searchPhysics' maxLen i f sR dR
+  | maxLen <= i = Nothing
+  | otherwise = let result = do s <- replicateM i [-16..15]
+                                let (sR', dR') = foldl' oneStepPhysics (sR, dR) s
+                                guard (f sR' dR')
+                                pure (s, sR', dR')
+                in case result of
+                     [] -> searchPhysics' maxLen (i + 1) f sR dR
+                     r : _ -> Just r
+
 searchPhysicsMulti :: Int -> Int -> (U.Vector Word8 -> U.Vector Word8 -> Bool) -> U.Vector Word8 -> U.Vector Word8 -> [[Int]]
 searchPhysicsMulti maxLen i f sR dR
   | maxLen <= i = []
@@ -207,6 +218,7 @@ main = do -- STOP
 
           -- addmem
           -- print $ searchPhysics 5 0 (\sR dR -> dR U.! 0 == 2 && sR U.! 0 == 0 && sR U.! 2 == 1) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
+          -- print $ searchPhysics' 5 0 (\sR dR -> U.any (== 2) dR && U.any (== 0) sR && U.any (== 1) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
 
           -- swapmem
           -- print $ searchPhysics 5 0 (\sR dR -> U.any (== 0) dR && U.any (== 0) sR && U.any (== 1) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
