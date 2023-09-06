@@ -8,7 +8,7 @@
 * [x] swapreg (50 / 50)
 * [x] swapreg2 (50 / 50)
 * [x] addmem (40 / 40)
-* [x] addmem2 (48 / 50)
+* [x] addmem2 (50 / 50)
 * [ ] multmem (0 / 200)
 * [ ] fillmem (0 / 200)
 * [ ] clearreg (0 / 100)
@@ -159,6 +159,15 @@ certify addmem addmem.bal
 ```
 
 score: 40 (addmem)
+
+```
+PHYSICS 7
+MATH 1 1 3
+PHYSICS 6
+SCIENCE 0
+```
+
+score: 50 (addmem2)
 
 # swapmem
 

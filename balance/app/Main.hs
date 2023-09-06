@@ -140,6 +140,20 @@ testSwapMem code_ = let state = State { code = V.fromList code_
                           Nothing -> False
                           Just state' -> List.any (\(i,j) -> memory state' U.! i == 2^j && memory state' U.! j == 2^i) [(i,j) | i <- [0..6], j <- [i+1..7]]
 
+testAddMem2 :: [Instruction] -> Bool
+testAddMem2 code_ = test 1 2 && test 7 3 && test 5 1
+  where v = V.fromList code_
+        test a b = let state = State { code = v
+                                     , memory = U.replicate 256 0 U.// [(0, a), (1, b)]
+                                     , ip = 0
+                                     , is = 1
+                                     , sR = U.fromList [0, 1, 2, 3]
+                                     , dR = U.fromList [4, 5]
+                                     }
+                   in case run 1000 state of
+                        Nothing -> False
+                        Just state' -> memory state' U.! 0 == a && memory state' U.! 1 == b && memory state' U.! 2 == a + b && U.all (== 0) (U.drop 3 (memory state'))
+
 oneStepPhysics :: (U.Vector Word8, U.Vector Word8) -> Int -> (U.Vector Word8, U.Vector Word8)
 oneStepPhysics (!sR, !dR) !imm
   = let sR' = sR U.// [(0, fromIntegral (fromIntegral (sR U.! 0) + imm))]
@@ -240,6 +254,19 @@ main = do -- STOP
           -- print $ searchPhysics 5 0 (\sR dR -> dR U.! 0 == 2 && sR U.! 0 == 0 && sR U.! 2 == 1) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
           -- print $ searchPhysics' 5 0 (\sR dR -> U.any (== 2) dR && U.any (== 0) sR && U.any (== 1) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
 
+          -- addmem2
+          let instrs = case [ c
+                            | i0 <- allMath ++ allLogic ++ allPhysics
+                            , i1 <- allMath ++ allLogic ++ allPhysics
+                            , i2 <- allMath ++ allLogic ++ allPhysics
+                            -- , i3 <- allMath ++ allLogic ++ allPhysics
+                            , let c = [i0, i1, i2, SCIENCE 0]
+                            , testAddMem2 c
+                            ] of
+                         [] -> Nothing
+                         c : _ -> Just c
+          print instrs
+
           -- swapmem
           -- print $ searchPhysics 5 0 (\sR dR -> U.any (== 0) dR && U.any (== 0) sR && U.any (== 1) sR) (U.fromList [0, 1, 2, 3]) (U.fromList [4, 5])
           {-
@@ -285,17 +312,18 @@ main = do -- STOP
                          c : _ -> Just c
           print instrs
           -}
+          {-
           let instrs = case [ c
                             | i0 <- allMath ++ allLogic ++ allPhysics
                             , i1 <- allMath ++ allLogic ++ allPhysics
                             , i2 <- allMath ++ allLogic ++ allPhysics
-                            -- , i3 <- allMath ++ allLogic ++ allPhysics
                             , let c = [i0, i1, i2, SCIENCE 0]
                             , testSwapMem c
                             ] of
                          [] -> Nothing
                          c : _ -> Just c
           print instrs
+          -}
 
           {-
           -- clearreg
