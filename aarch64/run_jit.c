@@ -31,12 +31,14 @@ static uint32_t *L_jump_to_fn[5]; // um_modify_0, um_alloc, um_free, um_putchar,
 static bool verbose = false;
 static char *presupplied_input = NULL;
 static bool discard_initial_output = false;
+static bool *patched;
 
-static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
+static void um_modify_0(uint32_t b, uint32_t c)
 {
-    if (origvalue == c) {
+    if (patched[b]) {
         return;
     }
+    patched[b] = true;
     uint32_t BL_L_epilogue;
     {
         /* BL L_epilogue */
@@ -44,9 +46,6 @@ static void um_modify_0(uint32_t b, uint32_t c, uint32_t origvalue)
         assert(-0x2000000 <= offset && offset < 0x2000000);
         uint32_t imm26 = (uint32_t)offset & 0x3FFFFFF;
         BL_L_epilogue = 0x94000000 | imm26;
-    }
-    if (*(uint32_t *)jumptable[b] == BL_L_epilogue) {
-        return;
     }
     if (verbose) {
         fprintf(stderr, "<<<self modification>>>");
@@ -212,12 +211,6 @@ static uint32_t *write_instr(uint32_t *instr, uint32_t op)
                 uint32_t option = 2; // Rm's width=W, UXTW
                 uint32_t imm3 = 2;
                 *instr++ = 0x0B200000 | (sf << 31) | (/* Rm */ Wb << 16) | (option << 13) | (imm3 << 10) | (/* Rn */ Xtmp << 5) | /* Rd */ Xtmp;
-            }
-            {
-                /* LDR W2, [Xtmp, #4] */
-                uint32_t size = 2; // 32-bit variant
-                uint32_t imm12 = 1;
-                *instr++ = 0x39400000 | (size << 30) | (imm12 << 10) | (/* Rn */ Xtmp << 5) | /* Rt */ 2;
             }
             {
                 /* STR Wc, [Xtmp, #4]! */
@@ -500,6 +493,10 @@ static void compile(struct array *arr0)
     if (program != NULL) {
         munmap(program, program_mem_capacity);
     }
+    if (patched != NULL) {
+        free(patched);
+    }
+    patched = calloc(arr0->length, sizeof(bool));
     size_t pagesize = getpagesize();
 #if defined(__APPLE__)
     pthread_jit_write_protect_np(0); // Make the memory writable
@@ -867,9 +864,8 @@ int main(int argc, char *argv[])
                 if (i == 0) {
                     uint32_t vb = registers[b];
                     uint32_t vc = registers[c];
-                    uint32_t origvalue = ai->data[vb];
                     ai->data[vb] = vc;
-                    um_modify_0(vb, vc, origvalue);
+                    um_modify_0(vb, vc);
                 } else {
                     ai->data[registers[b]] = registers[c];
                 }
