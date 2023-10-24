@@ -577,7 +577,7 @@ static void compile(struct array *arr0)
 #if defined(__GNUC__)
     __builtin___clear_cache(mem, (void *)instr);
 #else
-    FlushInstructionCache(GetCurrentProcess(), mem, instr - mem);
+    FlushInstructionCache(GetCurrentProcess(), mem, instr - (uint8_t *)mem);
 #endif
 }
 

@@ -132,13 +132,12 @@ static inline uint8_t *mov_r64_imm64(uint8_t *instr, enum reg64 dst, uint64_t im
 static inline uint8_t *mov_r32_dword_ptr(uint8_t *instr, enum reg32 dst, enum reg64 base, enum address_scale scale, enum reg64 index, int32_t disp)
 {
     // MOV r32, r/m32;  m=[base + scale*index + disp]
-    assert(base != rbp);
     assert(index != rsp);
     if (dst > edi || index > rdi || base > rdi) {
         *instr++ = REX(dst >> 3, index >> 3, base >> 3);
     }
     *instr++ = 0x8b;
-    if (disp == 0 && base != r13) {
+    if (disp == 0 && base != rbp && base != r13) {
         *instr++ = ModRM(0, dst & 7, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
     } else if (-128 <= disp && disp <= 127) {
@@ -180,11 +179,10 @@ static inline uint8_t *mov_r32_dword_ptr_rsp(uint8_t *instr, enum reg32 dst, int
 static inline uint8_t *mov_r64_qword_ptr(uint8_t *instr, enum reg64 dst, enum reg64 base, enum address_scale scale, enum reg64 index, int32_t disp)
 {
     // MOV r64, r/m64;  m=[base + scale*index + disp]
-    assert(base != rbp);
     assert(index != rsp);
     *instr++ = REX_W(dst >> 3, index >> 3, base >> 3);
     *instr++ = 0x8b;
-    if (disp == 0 && base != r13) {
+    if (disp == 0 && base != rbp && base != r13) {
         *instr++ = ModRM(0, dst & 7, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
     } else if (-128 <= disp && disp <= 127) {
@@ -224,13 +222,12 @@ static inline uint8_t *mov_r64_qword_ptr_rsp(uint8_t *instr, enum reg64 dst, int
 static inline uint8_t *mov_dword_ptr_r32(uint8_t *instr, enum reg64 base, enum address_scale scale, enum reg64 index, int32_t disp, enum reg32 src)
 {
     // MOV r/m32, r32;  m=[base + scale*index + disp]
-    assert(base != rbp);
     assert(index != rsp);
     if (src > edi || index > rdi || base > rdi) {
         *instr++ = REX(src >> 3, index >> 3, base >> 3);
     }
     *instr++ = 0x89;
-    if (disp == 0 && base != r13) {
+    if (disp == 0 && base != rbp && base != r13) {
         *instr++ = ModRM(0, src & 7, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
     } else if (-128 <= disp && disp <= 127) {
@@ -345,13 +342,12 @@ static inline uint8_t *jmp_r64(uint8_t *instr, enum reg64 r)
 static inline uint8_t *jmp_qword_ptr(uint8_t *instr, enum reg64 base, enum address_scale scale, enum reg64 index, int32_t disp)
 {
     // JMP r/m64
-    assert(base != rbp);
     assert(index != rsp);
     if (base > rdi || index > rdi) {
         *instr++ = REX(0, index >> 3, base >> 3);
     }
     *instr++ = 0xff;
-    if (disp == 0 && base != r13) {
+    if (disp == 0 && base != rbp && base != r13) {
         *instr++ = ModRM(0, 4, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
     } else if (-128 <= disp && disp <= 127) {
@@ -393,14 +389,13 @@ static inline uint8_t *cmovne_r32_r32(uint8_t *instr, enum reg32 r1, enum reg32 
 static inline uint8_t *lea_r32(uint8_t *instr, enum reg32 dst, enum reg32 base, enum address_scale scale, enum reg32 index, int32_t disp)
 {
     // LEA r32, m;  m = [base + scale*index + disp]
-    assert(base != ebp);
     assert(index != esp);
     *instr++ = 0x67; // operand size=32, address size=32
     if (dst > edi || base > edi || index > edi) {
         *instr++ = REX(dst >> 3, index >> 3, base >> 3);
     }
     *instr++ = 0x8d;
-    if (disp == 0 && base != r13d) {
+    if (disp == 0 && base != rbp && base != r13d) {
         *instr++ = ModRM(0, dst & 7, /* Use SIB */ 4);
         *instr++ = SIB(scale, index & 7, base & 7);
     } else if (-128 <= disp && disp <= 127) {
